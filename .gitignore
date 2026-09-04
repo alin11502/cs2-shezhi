@@ -1,0 +1,33 @@
+# 依赖与构建产物
+node_modules/
+site/dist/
+site/.astro/
+cli/dist/
+
+# PocketBase 运行时数据（含 SQLite，不入库；schema 走 pb_migrations）
+server/pb_data/
+
+# 本地工具与二进制（PocketBase 等，各自下载，不入库）
+.tools/
+*.zip
+
+# CLI 运行状态与导出产物
+.cs2cx-state.json
+cli/out/
+*.dem
+*.dem.bz2
+
+# 构建时从 PocketBase 拉取的缓存数据（可重建）
+site/src/data/*.json
+
+# 环境变量（PocketBase 地址、管理员 token 等）
+.env
+.env.*
+!.env.example
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log

@@ -1,0 +1,27 @@
+[Unit]
+Description=PocketBase (cs2-shezhi)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pocketbase
+Group=pocketbase
+WorkingDirectory=/opt/cs2-shezhi/server
+ExecStart=/opt/cs2-shezhi/server/pocketbase serve --http=127.0.0.1:8090
+Restart=always
+RestartSec=5
+LimitNOFILE=4096
+
+# 2GB 内存机器上的护栏：PocketBase 正常约 100MB，超过 512MB 说明有问题
+MemoryMax=512M
+
+# 只监听 127.0.0.1，公网流量一律经 Caddy，避免绕过 HTTPS 和访问日志
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/cs2-shezhi/server/pb_data
+
+[Install]
+WantedBy=multi-user.target
