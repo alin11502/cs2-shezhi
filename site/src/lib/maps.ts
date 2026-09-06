@@ -28,13 +28,12 @@ export interface MapBg {
 
 export const MAPS: MapBg[] = [
   { slug: "de_mirage", name: " Mirage", from: "#9aa7b8", to: "#6b5c42", tone: "mixed", scene: { horizon: 0.42, wall: 18, mid: "#8a7a5c" }, photo: true },
-  { slug: "de_dust2", name: "Dust II", from: "#c8b088", to: "#7a6440", tone: "light", scene: { horizon: 0.4, wall: 12, mid: "#a8905e" } },
+  { slug: "de_dust2", name: "Dust II", from: "#c8b088", to: "#7a6440", tone: "light", scene: { horizon: 0.4, wall: 12, mid: "#a8905e" }, photo: true },
   { slug: "de_inferno", name: "Inferno", from: "#b08858", to: "#4a3826", tone: "mixed", scene: { horizon: 0.45, wall: 22, mid: "#7a5a3a" }, photo: true },
   { slug: "de_nuke", name: "Nuke", from: "#8fa0a0", to: "#3a4444", tone: "dark", scene: { horizon: 0.5, wall: 8, mid: "#5a6a6a" }, photo: true },
   { slug: "de_overpass", name: "Overpass", from: "#8aa08a", to: "#33403a", tone: "dark", scene: { horizon: 0.46, wall: 15, mid: "#4a5a4a" }, photo: true },
   { slug: "de_ancient", name: "Ancient", from: "#7a8a70", to: "#2e382c", tone: "dark", scene: { horizon: 0.44, wall: 20, mid: "#4e5a48" }, photo: true },
-  { slug: "de_anubis", name: "Anubis", from: "#c0a060", to: "#4a3c22", tone: "mixed", scene: { horizon: 0.4, wall: 25, mid: "#8a7440" } },
-  { slug: "de_vertigo", name: "Vertigo", from: "#90a0b0", to: "#3a4450", tone: "dark", scene: { horizon: 0.55, wall: 6, mid: "#5a6470" } },
+  { slug: "de_anubis", name: "Anubis", from: "#c0a060", to: "#4a3c22", tone: "mixed", scene: { horizon: 0.4, wall: 25, mid: "#8a7440" }, photo: true },
 ];
 
 export type AspectMode = "16:9" | "4:3-stretch" | "4:3-blackbars" | "4:3-native";
