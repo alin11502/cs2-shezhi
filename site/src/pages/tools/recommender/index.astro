@@ -1,12 +1,25 @@
 ---
 import BaseLayout from "../../../components/layout/BaseLayout.astro";
+import RecommenderApp from "../../../components/recommend/RecommenderApp.svelte";
 import { pageTitle } from "../../../config";
-import { counts, hasEnoughSample, settings, MIN_SAMPLE_FOR_STATS } from "../../../lib/data";
+import {
+  counts,
+  getCurrentCrosshair,
+  getSettings,
+  hasEnoughSample,
+  listPlayersWithCrosshair,
+  settings,
+  MIN_SAMPLE_FOR_STATS,
+} from "../../../lib/data";
 import { edpi } from "../../../lib/format";
 
-// 本轮只做占位：真实的问卷 + 规则引擎 + PSA 二分逼近在 P5 实现。
-// 但页面不能是空的"敬请期待"——先把已有的职业 eDPI 分布拿出来，
-// 这是推荐器将来要依赖的同一份统计，现在就有参考价值。
+// 推荐器需要的匹配输入：每名选手的档案 + 设置 + 当前准星
+const inputs = listPlayersWithCrosshair().map((player) => ({
+  player,
+  settings: getSettings(player.id) ?? null,
+  crosshair: getCurrentCrosshair(player.id) ?? null,
+}));
+
 const edpis = settings
   .map((s) => edpi(s.sensitivity, s.dpi) ?? s.edpi)
   .filter((v): v is number => typeof v === "number" && v > 0)
@@ -19,7 +32,7 @@ const stats = enough
   : null;
 
 const title = pageTitle("CS2 准星与灵敏度推荐工具");
-const description = "回答几个关于打法、屏幕与握姿的问题，得到适配你的准星参数与灵敏度区间，并用 PSA 二分法逐步精调。工具开发中，当前先提供职业选手 eDPI 分布作参考。";
+const description = "回答几个关于打法、发力方式与屏幕的问题，得到可解释的准星参数与灵敏度区间推荐，列出最像你的职业选手，并用 PSA 二分法逐步精调到个人最佳灵敏度。";
 ---
 
 <BaseLayout
@@ -45,15 +58,13 @@ const description = "回答几个关于打法、屏幕与握姿的问题，得�
     </p>
   </header>
 
-  <div class="alert alert-info mb-8">
-    <div>
-      <h2 class="font-bold">交互功能开发中</h2>
-      <p class="text-sm">
-        问卷、规则引擎与 PSA 精调向导正在实现。下面先给出推荐器将来要依赖的同一份统计 ——
-        本站收录选手的 eDPI 分布，它现在就能帮你判断自己的灵敏度落在什么区间。
-      </p>
-    </div>
-  </div>
+  <section class="mb-10 rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="recommender">
+    <h2 id="recommender" class="mb-1 text-lg font-bold">问卷与推荐</h2>
+    <p class="mb-4 text-sm text-base-content/60">
+      所有推荐都带理由，匹配会标注用了几个维度；缺数据的维度剔除而不是给 0 分。
+    </p>
+    <RecommenderApp client:load inputs={inputs} settings={settings} />
+  </section>
 
   <section class="mb-8" aria-labelledby="edpi">
     <h2 id="edpi" class="mb-3 text-lg font-bold">职业选手 eDPI 分布</h2>

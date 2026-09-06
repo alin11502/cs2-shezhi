@@ -18,7 +18,8 @@ const {
   description = SITE_DESCRIPTION,
   path,
   jsonLd,
-  ogImage = null,
+  // 默认用 scripts/build-og.mjs 生成的站点卡片；选手页等用自己的图覆盖
+  ogImage = "/og/default.png",
   noindex = false,
 } = Astro.props;
 

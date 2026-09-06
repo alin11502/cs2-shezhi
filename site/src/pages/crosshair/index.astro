@@ -1,14 +1,23 @@
 ---
 import BaseLayout from "../../components/layout/BaseLayout.astro";
 import CrosshairSvg from "../../components/crosshair/CrosshairSvg.astro";
+import CodeLookup from "../../components/crosshair/CodeLookup.svelte";
+import CrosshairEditor from "../../components/crosshair/CrosshairEditor.svelte";
+import DynamicPreview from "../../components/crosshair/DynamicPreview.svelte";
 import { pageTitle } from "../../config";
-import { counts, listDistinctCodes } from "../../lib/data";
+import { counts, getCurrentCrosshair, listDistinctCodes, listPlayersWithCrosshair } from "../../lib/data";
 import { styleLabel } from "../../lib/format";
 
 const codes = listDistinctCodes();
 
+// 编辑器与动态预览的初始参数：取站内第一个有准星的选手的当前准星，
+// 比凭空给一组默认值更贴近真实使用场景
+const initialParams =
+  (getCurrentCrosshair(listPlayersWithCrosshair()[0]?.id ?? "") as unknown as Record<string, number | boolean>) ??
+  null;
+
 const title = pageTitle("CS2 准星码查询与生成器");
-const description = `浏览本站收录的 ${codes.length} 个 CS2 职业选手准星码，每个都附可视化预览、21 项参数解析与可导入的 CFG。交互式准星编辑器即将上线。`;
+const description = `查询任意 CS2 准星码的 21 项参数与可视化预览，或用编辑器拖参数即时生成准星码与可导入的 CFG。所有输入先钳制到合法范围并回读核对，不会产出参数错乱的码。`;
 ---
 
 <BaseLayout
@@ -34,16 +43,35 @@ const description = `浏览本站收录的 ${codes.length} 个 CS2 职业选手�
     </p>
   </header>
 
-  <div class="alert mb-6">
-    <div>
-      <h2 class="font-bold">交互式编辑器开发中</h2>
-      <p class="text-sm">
-        拖参数实时预览、即时生成准星码与 CFG 的编辑器，以及「粘贴码查参数」的查询框，
-        会在下一阶段上线。现在可以先浏览下面的已收录准星码，或用
-        <a href="/tools/recommender" class="link link-hover">推荐工具</a>找到适合你的设置。
-      </p>
-    </div>
-  </div>
+  <section class="mb-8 rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="lookup">
+    <h2 id="lookup" class="mb-3 text-lg font-bold">查询准星码</h2>
+    <CodeLookup client:load knownCodes={codes.map((c) => c.code)} />
+  </section>
+
+  <section class="mb-8 rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="editor">
+    <h2 id="editor" class="mb-1 text-lg font-bold">准星编辑器</h2>
+    <p class="mb-4 text-sm text-base-content/60">
+      拖参数实时预览，即时生成准星码与 CFG。所有输入先钳制到合法范围并对齐步进，
+      生成前解码回读核对 21 项，不一致就不出码。
+    </p>
+    {initialParams ? (
+      <CrosshairEditor client:load />
+    ) : (
+      <p class="text-sm text-base-content/60">数据库建设中，编辑器使用内置默认参数。</p>
+    )}
+  </section>
+
+  <section class="mb-8 rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="dynamic">
+    <h2 id="dynamic" class="mb-1 text-lg font-bold">动态准星扩张预览</h2>
+    <p class="mb-4 text-sm text-base-content/60">
+      用码里真实的分裂参数驱动一次连射的扩张与收回。示意动画，非引擎精确模拟。
+    </p>
+    {initialParams ? (
+      <DynamicPreview client:load params={initialParams} />
+    ) : (
+      <p class="text-sm text-base-content/60">数据库建设中。</p>
+    )}
+  </section>
 
   <section aria-labelledby="gallery">
     <h2 id="gallery" class="mb-3 text-lg font-bold">已收录的准星码</h2>

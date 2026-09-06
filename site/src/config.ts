@@ -1,7 +1,14 @@
 // 全站可配置项。改站名、导航、标题模板都只动这一个文件。
 
+/**
+ * import.meta.env 是 Vite/Astro 注入的构造：在纯 Node 环境
+ * （例如 scripts/build-og.mjs 直接 import 本文件做 OG 图）下是 undefined，
+ * 所以必须可选链读取，退化为空对象而不是崩溃。
+ */
+const env = (import.meta as { env?: Record<string, string | undefined> }).env ?? {};
+
 /** astro.config.mjs 里的 site 值，经 Astro 注入 */
-const siteFromConfig = import.meta.env.SITE as string | undefined;
+const siteFromConfig = env.SITE;
 
 /**
  * 是否已有真实域名。
@@ -51,7 +58,7 @@ export const FOOTER_LINKS: { label: string; href: string }[] = [
  * fetch-data.mjs 写出的 avatar_url / logo_url 已经是相对路径 `/api/files/...`，
  * 缓存的 JSON 里不固化 PocketBase 地址，所以下面这个函数只做"按需加前缀"。
  */
-const PB_ORIGIN = (import.meta.env.PUBLIC_PB_ORIGIN as string | undefined)?.replace(/\/+$/, "") ?? "";
+const PB_ORIGIN = (env.PUBLIC_PB_ORIGIN ?? "").replace(/\/+$/, "");
 
 /**
  * 把 fetch-data 产出的相对文件路径补成可用的 URL。

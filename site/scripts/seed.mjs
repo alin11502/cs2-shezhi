@@ -36,7 +36,13 @@ const require_ = createRequire(import.meta.url);
 // 它是 CommonJS，所以用 createRequire 加载。
 const crosshair = require_(path.join(REPO_ROOT, "cli", "src", "crosshair.js"));
 
-const SEED_FILE = path.join(SITE_ROOT, "scripts", "seed", "players.seed.json");
+// 默认种子；--file 可指定待审草稿（如 fetch-prosettings.mjs 的产出），
+// 人工审过之后再入库，避免未审核的第三方数据直接进库。
+const fileArgIdx = process.argv.indexOf("--file");
+const SEED_FILE =
+  fileArgIdx > 0 && process.argv[fileArgIdx + 1]
+    ? path.resolve(SITE_ROOT, process.argv[fileArgIdx + 1])
+    : path.join(SITE_ROOT, "scripts", "seed", "players.seed.json");
 const PB_URL = pbUrl(loadEnv());
 const ENV = loadEnv();
 const DRY_RUN = process.argv.includes("--dry-run");

@@ -20,6 +20,13 @@ cli/out/
 # 构建时从 PocketBase 拉取的缓存数据（可重建）
 site/src/data/*.json
 
+# prosettings.net 抓取缓存与待审草稿：第三方数据人工审核前不进版本库
+site/scripts/.prosettings-cache/
+site/scripts/seed/prosettings-draft.json
+
+# OG 分享卡片：scripts/build-og.mjs 在 build 时生成，不入库
+site/public/og/
+
 # 环境变量（PocketBase 地址、管理员 token 等）
 .env
 .env.*

@@ -6,7 +6,7 @@
   "description": "CS2 职业选手准星与设置内容站 —— Astro 静态前端",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "node scripts/build-og.mjs && astro build",
     "preview": "astro preview",
     "fetch-data": "node scripts/fetch-data.mjs",
     "fetch-data:strict": "node scripts/fetch-data.mjs --strict",
@@ -17,15 +17,17 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/sitemap": "^3.7.4",
     "@astrojs/svelte": "^9.0.1",
+    "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.3.1",
     "csgo-sharecode": "^5.0.0",
+    "daisyui": "^5.7.28",
     "svelte": "^5.57.0",
-    "tailwindcss": "^4.3.3",
-    "@tailwindcss/vite": "^4.3.3",
-    "daisyui": "^5.7.28"
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "typescript": "^5.9.0"
   }
 }

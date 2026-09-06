@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from "astro/config";
 import svelte from "@astrojs/svelte";
+import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 
 // 还没有域名。用保留 TLD .invalid 占位 —— 它按 RFC 2606 永远不会被解析或索引，
@@ -8,11 +9,14 @@ import tailwindcss from "@tailwindcss/vite";
 // "是否已有真实域名"：未有时 Seo.astro 不输出 canonical/og:url，
 // robots.txt 不输出 Sitemap 行，也不启用 sitemap 集成。
 const SITE_URL = process.env.SITE_URL || "https://cs2-shezhi.invalid";
+const HAS_REAL_DOMAIN = !SITE_URL.endsWith(".invalid");
 
 export default defineConfig({
   site: SITE_URL,
 
-  integrations: [svelte()],
+  // sitemap 只在有真实域名时启用：否则 sitemap-index.xml 里全是
+  // https://cs2-shezhi.invalid/... 这种永远不会解析的地址，比没有更糟。
+  integrations: [svelte(), ...(HAS_REAL_DOMAIN ? [sitemap()] : [])],
 
   // Tailwind v4 走 Vite 插件，不是 @astrojs/tailwind —— 后者最新 6.0.2 的 peer
   // 上限是 astro ^5 + tailwindcss ^3，在 Astro 7 下不可用。
