@@ -90,9 +90,10 @@ async function extractOne(demoPath, overrides, opts) {
       crosshair: {
         code: p.final_code,
         captured_at,
+        // pickEncoded 现在覆盖全部 21 项，含动态准星的 4 个分裂参数。
+        // 早先这里额外有个 not_in_code 字段把它们隔离出去，理由是"不在码里、
+        // 是引擎默认值"——该论断已证伪，见 cli/src/crosshair.js 的说明。
         params: crosshair.pickEncoded(decoded),
-        // 显式标注这四个是引擎默认值、不是选手配置，前台不得当作设置展示
-        not_in_code: crosshair.pickNotInCode(decoded),
         raw: decoded,
       },
       viewmodel: Object.keys(vm.mapped).length ? vm.mapped : null,

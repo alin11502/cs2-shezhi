@@ -135,6 +135,13 @@ migrate((app) => {
 
   // ---------- crosshair_snapshots（append-only 准星历史，核心表）----------
   //
+  // ⚠⚠ 下面这段"字段划分依据"的结论**已被推翻，请勿据此行事**。
+  // 更正见 1756900400_add_split_fields.js —— 那 4 项动态准星参数确实编码在码里
+  // （bytes[8] / bytes[10] / bytes[11]），现已补建 4 列，参数总数是 21 而非 17。
+  // 原文保留作为历史记录（说明为什么会走这段弯路：只测了自己生成的、
+  // 恰好都用默认值的码）。本段是纯注释改动，不影响已应用的迁移状态 ——
+  // PocketBase 按文件名记录迁移，改内容不会重跑。
+  //
   // 字段划分依据实测：准星分享码的 19 字节载荷**只携带**下面 listed 的 17 个参数。
   // splitDistance / innerSplitAlpha / outerSplitAlpha / splitSizeRatio 不在码里，
   // 解码器永远返回 CS2 默认值（2 / 0.8 / 0.4 / 1.5），因此**不建列**，
@@ -159,7 +166,9 @@ migrate((app) => {
       // 准星码原值，是这个版本的天然指纹
       { type: "text", name: "code", required: true, max: 40 },
 
-      // --- 解码出的准星参数（码里确实携带的 17 项）---
+      // --- 解码出的准星参数 ---
+      // 这里是 17 项；另外 4 项动态准星参数由 1756900400_add_split_fields.js 补建，
+      // 合计 21 项（见该迁移里的更正说明）。
       // 0=默认 1=静态(经典) 2=经典 3=内缩(准) 4=动态
       { type: "number", name: "style", min: 0, max: 4 },
       { type: "number", name: "length" },
@@ -203,6 +212,11 @@ migrate((app) => {
     ],
     indexes: [
       // 同一 demo 同一选手只留一条，重复导入天然幂等
+      // ⚠ 已被 1756900200_fix_snapshot_demo_index.js 修正为部分唯一索引
+      //   （WHERE demo != ''）。原因：PocketBase 的空 relation 存的是空字符串
+      //   而非 NULL，导致所有无 demo 的人工/第三方快照在 ('', player) 上碰撞，
+      //   同一选手存不下第二个准星版本。此处保持原样不改，因为 PocketBase
+      //   按文件名记录已应用的迁移，改内容不会重跑，反而会让全新库与既有库分叉。
       "CREATE UNIQUE INDEX idx_snap_demo_player ON crosshair_snapshots (demo, player)",
       // 同一选手同一准星码在同一比赛日只留一条
       "CREATE UNIQUE INDEX idx_snap_player_code_date ON crosshair_snapshots (player, code, captured_at)",

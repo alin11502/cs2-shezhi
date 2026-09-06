@@ -140,14 +140,19 @@ routerAdd("POST", "/api/cs2cx/import", (e) => {
     return { record: rec, isNew: isNew };
   }
 
-  // 把导出里的 17 项准星参数写进记录。
-  // not_in_code 那四项**不写列**——准星码根本不携带它们，schema 里也没建列，
-  // 解码器返回的永远是 CS2 引擎默认值，写进去就是假数据。
+  // 把导出里的 21 项准星参数写进记录。
+  //
+  // 这里曾经只有 17 项，并声称 split_distance / inner_split_alpha /
+  // outer_split_alpha / split_size_ratio "准星码根本不携带、写进去就是假数据"。
+  // **该论断已被证伪**：它们编码在 bytes[8]/[10]/[11]（详见
+  // 1756900400_add_split_fields.js 的更正说明），是动态准星的分裂行为参数，
+  // 属于选手的真实设置，必须原样入库。
   function applyCrosshairParams(rec, params) {
     const FIELDS = [
       "style", "length", "thickness", "gap", "color", "red", "green", "blue",
       "alpha_enabled", "alpha", "outline_enabled", "outline", "center_dot_enabled",
       "follow_recoil", "fixed_crosshair_gap", "t_style_enabled", "deployed_weapon_gap_enabled",
+      "split_distance", "inner_split_alpha", "outer_split_alpha", "split_size_ratio",
     ];
     if (!params) return;
     for (const f of FIELDS) {

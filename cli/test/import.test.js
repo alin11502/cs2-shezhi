@@ -41,6 +41,9 @@ const SID = (n) => `76561199900000${String(n).padStart(3, "0")}`;
 const TEST_BATCH = "selftest-batch";
 
 // 造一个合法的准星码。参数可变，便于模拟"选手换了准星"。
+// 那 4 项动态准星参数刻意用**非默认值** 3/0.1/1/1（取自真实码
+// CSGO-UseJt-… 的实测解码结果）：若用默认值 2/0.8/0.4/1.5，
+// "encode 无条件覆盖成默认值"这类数据丢失就永远测不出来。
 async function makeCode(over = {}) {
   return crosshair.encode({
     style: 4, length: 5, thickness: 1, gap: -2, color: 1,
@@ -48,6 +51,7 @@ async function makeCode(over = {}) {
     outline_enabled: true, outline: 1, center_dot_enabled: false,
     follow_recoil: false, fixed_crosshair_gap: 0, t_style_enabled: false,
     deployed_weapon_gap_enabled: true,
+    split_distance: 3, inner_split_alpha: 0.1, outer_split_alpha: 1, split_size_ratio: 1,
     ...over,
   });
 }
@@ -66,7 +70,6 @@ function player(n, name, code, extra = {}) {
       code,
       captured_at: extra.captured_at || "2026-02-14T18:30:00.000Z",
       params: extra.params || null,
-      not_in_code: { split_distance: 2, inner_split_alpha: 0.8, outer_split_alpha: 0.4, split_size_ratio: 1.5 },
       raw: extra.raw || {},
     },
     observations: extra.observations || [{ tick: 100, code }],
@@ -180,9 +183,17 @@ async function main() {
     bravoSnap && bravoSnap.color === 6 && bravoSnap.red === 255 && bravoSnap.blue === 128,
     bravoSnap ? `color=${bravoSnap.color} red=${bravoSnap.red} blue=${bravoSnap.blue}` : "找不到记录");
 
-  // 那四个不在码里的字段绝不能建成列
-  check("not_in_code 四项未污染 snapshot",
-    alphaSnap && alphaSnap.split_distance === undefined && alphaSnap.split_size_ratio === undefined);
+  // 这 4 项确实编码在码里（bytes[8]/[10]/[11]），是选手的真实设置。
+  // 断言方向曾经是反的（"不得建成列、不得污染 snapshot"），基于已被证伪的前提。
+  // 现在必须验证它们真的落库、且值没在中途被默认值覆盖。
+  check("动态准星 4 项已落库且值正确（未被默认值覆盖）",
+    alphaSnap && alphaSnap.split_distance === 3
+      && alphaSnap.inner_split_alpha === 0.1
+      && alphaSnap.outer_split_alpha === 1
+      && alphaSnap.split_size_ratio === 1,
+    alphaSnap
+      ? `split_distance=${alphaSnap.split_distance} inner=${alphaSnap.inner_split_alpha} outer=${alphaSnap.outer_split_alpha} ratio=${alphaSnap.split_size_ratio}（期望 3/0.1/1/1，引擎默认值是 2/0.8/0.4/1.5）`
+      : "找不到记录");
 
   // ---------- 2. 幂等性 ----------
   section("2. 重复导入同一份（幂等性）");

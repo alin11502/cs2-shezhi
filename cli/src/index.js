@@ -50,9 +50,10 @@ decode 选项：
   demo 旁边可放同名 <name>.meta.json 补充赛事、日期、队名等 parseHeader 拿不到的信息，
   命令行选项的优先级高于 meta.json。
 
-  准星码只携带 17 项参数。split_distance / inner_split_alpha / outer_split_alpha /
-  split_size_ratio 不在码里，解码器对任何码都返回 CS2 引擎默认值，导出时会被单独
-  隔离在 not_in_code 字段，前台不得当作选手设置展示。
+  准星码携带全部 21 项参数。其中 split_distance / inner_split_alpha /
+  outer_split_alpha / split_size_ratio 是动态准星（style=4）的分裂行为参数：
+  静态样式下不影响外观，但始终编码在码里（bytes[8]/[10]/[11]），是选手的真实
+  设置，会原样导出、原样写进 CFG。
 `;
 
 // 极简参数解析：位置参数进 args，--flag value 进 opts。
@@ -134,14 +135,33 @@ async function doctor() {
       alpha_enabled: true, alpha: 255, outline_enabled: true, outline: 1,
       center_dot_enabled: false, follow_recoil: false, fixed_crosshair_gap: 0,
       t_style_enabled: false, deployed_weapon_gap_enabled: true,
+      // 这 4 项必须用**非默认值**，否则自检永远测不到它们、等于空转。
+      // 早先 probe 里没有这 4 项，正是数据丢失 bug 能长期潜伏的原因：
+      // encode 无条件用默认值覆盖它们，而 probe 恰好不提供，往返自然"一致"。
+      split_distance: 3, inner_split_alpha: 0.1, outer_split_alpha: 1, split_size_ratio: 1,
     };
     const code = await crosshair.encode(probe);
     const back = await crosshair.decode(code);
     const mapped = crosshair.pickEncoded(back);
     const diffs = Object.keys(probe).filter((k) => probe[k] !== mapped[k]);
-    add("准星码编解码往返", !diffs.length, diffs.length ? `字段不一致: ${diffs.join(", ")}` : `${code} → 17 项全部一致`);
+    const n = Object.keys(probe).length;
+    add("准星码编解码往返", !diffs.length && n === 21,
+      diffs.length ? `字段不一致: ${diffs.join(", ")}` : `${code} → ${n} 项全部一致`);
   } catch (e) {
     add("准星码编解码往返", false, e.message);
+  }
+
+  // 3b. 真实码必须能字节级还原。这条能抓住"用默认值覆盖真值"这类静默数据丢失：
+  // 该码解出的 split 参数是 3/0.1/1/1，若 encode 把它们抹成默认值，重编码就会变码。
+  try {
+    const crosshair = require("./crosshair");
+    const real = "CSGO-UseJt-3oTvn-47wPX-hEyER-WZfiK";
+    const params = crosshair.pickEncoded(await crosshair.decode(real));
+    const reencoded = await crosshair.encode(params);
+    add("真实码字节级还原", reencoded === real,
+      reencoded === real ? `${real} 重编码后完全一致` : `原码 ${real} → 重编码 ${reencoded}（说明有字段被覆盖或丢失）`);
+  } catch (e) {
+    add("真实码字节级还原", false, e.message);
   }
 
   // 4. 配置

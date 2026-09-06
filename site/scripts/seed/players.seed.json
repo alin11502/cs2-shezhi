@@ -1,0 +1,883 @@
+{
+  "_comment": [
+    "样本 seed 数据 —— 全部为虚构，不对应任何真实选手。",
+    "",
+    "为什么是虚构的：本轮调研实测发现第三方聚合站之间互相矛盾。以 s1mple 为例，",
+    "totalcsgo.com 给出 CSGO-UseJt-3oTvn-47wPX-hEyER-WZfiK，csdb.gg 给出",
+    "CSGO-iCxok-KTVNX-shCzf-Evoek-weaAB，解码后 gap / color / alpha 三项都不同；",
+    "而后者还能追溯到 prosettings.net 评论区一条匿名提交。prosettings 自己的正文",
+    "只以 convar 名值对形式给出参数、且值是人类可读文本（如 'Classic Static'），",
+    "需要一张显示值→数值的映射表才能用，映射错一位就是把错误数据挂到真人身上。",
+    "",
+    "所以本轮（范围：只做站点前端）用清楚标注的样本数据驱动开发与验证。",
+    "真实数据管道留待后续轮次，且应以选手本人或战队官方发布的码为准。",
+    "",
+    "准星码本身是真实合法的 CS2 分享码：由 seed.mjs 调 cli/src/crosshair.js 的",
+    "encodeCrosshair 从下面的 params 现场生成，并做 encode→decode 回读断言，",
+    "所以解码、渲染、历史、推荐器走的都是真实代码路径。",
+    "",
+    "所有记录的 evidence_url 都指向 /about/data，该页会说明这是样本集。"
+  ],
+  "batch": "seed-sample-2026-09",
+  "provenance": {
+    "source": "manual",
+    "confidence": "low",
+    "evidence_url": null,
+    "verified_at": "2026-09-04",
+    "notes": "虚构样本数据，不对应任何真实选手。准星码本身是合法可导入的 CS2 分享码，由 seed.mjs 从参数现场编码生成并通过 encode→decode 回读断言；设置数值按职业选手的常见区间构造，仅用于前端开发与验证。本站尚无域名，因此没有可引用的外部证据 URL —— 说明见站点 /about/data 页。"
+  },
+  "teams": [
+    {
+      "slug": "sample-alpha",
+      "name": "样本战队 Alpha",
+      "tag": "SMPA",
+      "region": "eu",
+      "active": true
+    },
+    {
+      "slug": "sample-bravo",
+      "name": "样本战队 Bravo",
+      "tag": "SMPB",
+      "region": "cis",
+      "active": true
+    },
+    {
+      "slug": "sample-charlie",
+      "name": "样本战队 Charlie",
+      "tag": "SMPC",
+      "region": "na",
+      "active": true
+    },
+    {
+      "slug": "sample-delta",
+      "name": "样本战队 Delta",
+      "tag": "SMPD",
+      "region": "asia",
+      "active": true
+    }
+  ],
+  "players": [
+    {
+      "slug": "sample-a",
+      "name": "样本选手 A",
+      "real_name": null,
+      "country": "DK",
+      "role": "awper",
+      "status": "active",
+      "sort_order": 1,
+      "team": "sample-alpha",
+      "settings": {
+        "sensitivity": 1.9,
+        "dpi": 400,
+        "zoom_sensitivity": 0.9,
+        "windows_sensitivity": 6,
+        "polling_rate": 1000,
+        "raw_input": true,
+        "resolution": "1280x960",
+        "aspect_ratio": "4:3",
+        "scaling_mode": "stretch",
+        "refresh_rate": 240,
+        "brightness": 100,
+        "display_mode": "fullscreen",
+        "multisampling": 4,
+        "boost_player_contrast": "enabled",
+        "mouse": "Logitech G Pro X Superlight 2",
+        "mousepad": "Artisan Zero Soft",
+        "keyboard": "Wooting 60HE",
+        "headset": "HyperX Cloud II",
+        "monitor": "ZOWIE XL2546K",
+        "launch_options": "-novid -high"
+      },
+      "tenures": [
+        {
+          "team": "sample-alpha",
+          "role": "awper",
+          "start_date": "2023-01-15",
+          "end_date": null
+        }
+      ],
+      "crosshairs": [
+        {
+          "captured_at": "2025-11-02",
+          "params": {
+            "style": 2,
+            "length": 3,
+            "thickness": 1,
+            "gap": -3,
+            "color": 1,
+            "red": 0,
+            "green": 255,
+            "blue": 0,
+            "alpha_enabled": true,
+            "alpha": 255,
+            "outline_enabled": true,
+            "outline": 1,
+            "center_dot_enabled": false,
+            "follow_recoil": false,
+            "fixed_crosshair_gap": 0,
+            "t_style_enabled": false,
+            "deployed_weapon_gap_enabled": true,
+            "split_distance": 2,
+            "inner_split_alpha": 0.8,
+            "outer_split_alpha": 0.4,
+            "split_size_ratio": 1.5
+          }
+        },
+        {
+          "captured_at": "2026-03-18",
+          "params": {
+            "style": 2,
+            "length": 2.5,
+            "thickness": 1,
+            "gap": -2.5,
+            "color": 4,
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "alpha_enabled": true,
+            "alpha": 255,
+            "outline_enabled": true,
+            "outline": 1,
+            "center_dot_enabled": false,
+            "follow_recoil": false,
+            "fixed_crosshair_gap": 0,
+            "t_style_enabled": false,
+            "deployed_weapon_gap_enabled": true,
+            "split_distance": 2,
+            "inner_split_alpha": 0.8,
+            "outer_split_alpha": 0.4,
+            "split_size_ratio": 1.5
+          }
+        }
+      ],
+      "keybinds": [
+        {
+          "action": "buy",
+          "key": "kp_uparrow",
+          "raw_command": "kp_uparrow \"buy p250;\""
+        }
+      ]
+    },
+    {
+      "slug": "sample-b",
+      "name": "样本选手 B",
+      "real_name": null,
+      "country": "RU",
+      "role": "rifler",
+      "status": "active",
+      "sort_order": 2,
+      "team": "sample-alpha",
+      "settings": {
+        "sensitivity": 2.2,
+        "dpi": 400,
+        "zoom_sensitivity": 1,
+        "windows_sensitivity": 6,
+        "polling_rate": 1000,
+        "raw_input": true,
+        "resolution": "1920x1080",
+        "aspect_ratio": "16:9",
+        "scaling_mode": "aspect",
+        "refresh_rate": 360,
+        "brightness": 110,
+        "display_mode": "fullscreen",
+        "multisampling": 8,
+        "boost_player_contrast": "enabled",
+        "mouse": "Razer Viper V3 Pro",
+        "mousepad": "Esports Tiger Tiger II",
+        "keyboard": "Razer Huntsman V3 Pro",
+        "headset": "Logitech G Pro X 2",
+        "monitor": "ASUS ROG Swift PG248QP",
+        "launch_options": "-novid"
+      },
+      "tenures": [
+        {
+          "team": "sample-bravo",
+          "role": "rifler",
+          "start_date": "2022-06-01",
+          "end_date": "2024-12-10"
+        },
+        {
+          "team": "sample-alpha",
+          "role": "rifler",
+          "start_date": "2025-01-08",
+          "end_date": null
+        }
+      ],
+      "crosshairs": [
+        {
+          "captured_at": "2026-01-20",
+          "params": {
+            "style": 4,
+            "length": 5,
+            "thickness": 1,
+            "gap": -2,
+            "color": 1,
+            "red": 0,
+            "green": 255,
+            "blue": 0,
+            "alpha_enabled": true,
+            "alpha": 255,
+            "outline_enabled": true,
+            "outline": 1,
+            "center_dot_enabled": false,
+            "follow_recoil": false,
+            "fixed_crosshair_gap": 0,
+            "t_style_enabled": false,
+            "deployed_weapon_gap_enabled": true,
+            "split_distance": 3,
+            "inner_split_alpha": 0.1,
+            "outer_split_alpha": 1,
+            "split_size_ratio": 1
+          }
+        }
+      ]
+    },
+    {
+      "slug": "sample-c",
+      "name": "样本选手 C",
+      "real_name": null,
+      "country": "CN",
+      "role": "igl",
+      "status": "active",
+      "sort_order": 3,
+      "team": "sample-alpha",
+      "settings": {
+        "sensitivity": 3.1,
+        "dpi": 400,
+        "zoom_sensitivity": 0.8189,
+        "windows_sensitivity": 6,
+        "polling_rate": 2000,
+        "raw_input": true,
+        "resolution": "1728x1080",
+        "aspect_ratio": "16:10",
+        "scaling_mode": "stretch",
+        "refresh_rate": 240,
+        "brightness": 95,
+        "display_mode": "fullscreen",
+        "multisampling": 4,
+        "boost_player_contrast": "disabled",
+        "mouse": "ZOWIE EC2-CW",
+        "mousepad": "ZOWIE G-SR-SE",
+        "keyboard": "Keychron Q1 Pro",
+        "headset": "SteelSeries Arctis Nova Pro",
+        "monitor": "BenQ Mobiuz EX2510S",
+        "launch_options": "-novid -threads 8"
+      },
+      "tenures": [
+        {
+          "team": "sample-alpha",
+          "role": "igl",
+          "start_date": "2024-03-01",
+          "end_date": null
+        }
+      ],
+      "crosshairs": [
+        {
+          "captured_at": "2026-02-11",
+          "params": {
+            "style": 2,
+            "length": 4,
+            "thickness": 0.8,
+            "gap": -1,
+            "color": 6,
+            "red": 255,
+            "green": 128,
+            "blue": 0,
+            "alpha_enabled": true,
+            "alpha": 220,
+            "outline_enabled": true,
+            "outline": 0.5,
+            "center_dot_enabled": true,
+            "follow_recoil": false,
+            "fixed_crosshair_gap": 0,
+            "t_style_enabled": false,
+            "deployed_weapon_gap_enabled": false,
+            "split_distance": 2,
+            "inner_split_alpha": 0.8,
+            "outer_split_alpha": 0.4,
+            "split_size_ratio": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "slug": "sample-d",
+      "name": "样本选手 D",
+      "real_name": null,
+      "country": "UA",
+      "role": "entry",
+      "status": "active",
+      "sort_order": 4,
+      "team": "sample-bravo",
+      "settings": {
+        "sensitivity": 1.4,
+        "dpi": 800,
+        "zoom_sensitivity": 1,
+        "windows_sensitivity": 6,
+        "polling_rate": 1000,
+        "raw_input": true,
+        "resolution": "1280x960",
+        "aspect_ratio": "4:3",
+        "scaling_mode": "black_bars",
+        "refresh_rate": 240,
+        "brightness": 105,
+        "display_mode": "fullscreen",
+        "multisampling": 4,
+        "boost_player_contrast": "enabled",
+        "mouse": "Logitech G Pro X Superlight",
+        "mousepad": "Artisan Hayate Otsu Soft",
+        "keyboard": "Wooting 80HE",
+        "headset": "Sennheiser GSP 670",
+        "monitor": "ZOWIE XL2540K",
+        "launch_options": "-novid -high"
+      },
+      "tenures": [
+        {
+          "team": "sample-bravo",
+          "role": "entry",
+          "start_date": "2023-09-20",
+          "end_date": null
+        }
+      ],
+      "crosshairs": [
+        {
+          "captured_at": "2025-08-14",
+          "params": {
+            "style": 1,
+            "length": 6,
+            "thickness": 2,
+            "gap": -3,
+            "color": 1,
+            "red": 0,
+            "green": 255,
+            "blue": 0,
+            "alpha_enabled": true,
+            "alpha": 255,
+            "outline_enabled": false,
+            "outline": 1,
+            "center_dot_enabled": false,
+            "follow_recoil": false,
+            "fixed_crosshair_gap": 0,
+            "t_style_enabled": false,
+            "deployed_weapon_gap_enabled": true,
+            "split_distance": 2,
+            "inner_split_alpha": 0.8,
+            "outer_split_alpha": 0.4,
+            "split_size_ratio": 1.5
+          }
+        },
+        {
+          "captured_at": "2025-12-30",
+          "params": {
+            "style": 1,
+            "length": 4,
+            "thickness": 1.5,
+            "gap": -2,
+            "color": 1,
+            "red": 0,
+            "green": 255,
+            "blue": 0,
+            "alpha_enabled": true,
+            "alpha": 255,
+            "outline_enabled": true,
+            "outline": 1,
+            "center_dot_enabled": false,
+            "follow_recoil": false,
+            "fixed_crosshair_gap": 0,
+            "t_style_enabled": false,
+            "deployed_weapon_gap_enabled": true,
+            "split_distance": 2,
+            "inner_split_alpha": 0.8,
+            "outer_split_alpha": 0.4,
+            "split_size_ratio": 1.5
+          }
+        },
+        {
+          "captured_at": "2026-05-06",
+          "params": {
+            "style": 2,
+            "length": 4,
+            "thickness": 1.5,
+            "gap": -2,
+            "color": 4,
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "alpha_enabled": true,
+            "alpha": 255,
+            "outline_enabled": true,
+            "outline": 1,
+            "center_dot_enabled": false,
+            "follow_recoil": false,
+            "fixed_crosshair_gap": 0,
+            "t_style_enabled": false,
+            "deployed_weapon_gap_enabled": true,
+            "split_distance": 2,
+            "inner_split_alpha": 0.8,
+            "outer_split_alpha": 0.4,
+            "split_size_ratio": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "slug": "sample-e",
+      "name": "样本选手 E",
+      "real_name": null,
+      "country": "FR",
+      "role": "support",
+      "status": "active",
+      "sort_order": 5,
+      "team": "sample-bravo",
+      "settings": {
+        "sensitivity": 2.8,
+        "dpi": 400,
+        "zoom_sensitivity": 0.9,
+        "windows_sensitivity": 6,
+        "polling_rate": 1000,
+        "raw_input": true,
+        "resolution": "1920x1080",
+        "aspect_ratio": "16:9",
+        "scaling_mode": "aspect",
+        "refresh_rate": 180,
+        "brightness": 100,
+        "display_mode": "borderless",
+        "multisampling": 2,
+        "boost_player_contrast": "enabled",
+        "mouse": "Glorious Model O Pro",
+        "mousepad": "Razer Gigantus V2",
+        "keyboard": "SteelSeries Apex Pro TKL",
+        "headset": "HyperX Cloud Alpha",
+        "monitor": "AOC 24G2SP",
+        "launch_options": "-novid"
+      },
+      "tenures": [
+        {
+          "team": "sample-charlie",
+          "role": "support",
+          "start_date": "2021-11-05",
+          "end_date": "2023-07-30"
+        },
+        {
+          "team": "sample-bravo",
+          "role": "support",
+          "start_date": "2023-08-12",
+          "end_date": null
+        }
+      ],
+      "crosshairs": [
+        {
+          "captured_at": "2026-04-02",
+          "params": {
+            "style": 4,
+            "length": 3.5,
+            "thickness": 1,
+            "gap": -4,
+            "color": 2,
+            "red": 255,
+            "green": 255,
+            "blue": 0,
+            "alpha_enabled": false,
+            "alpha": 255,
+            "outline_enabled": true,
+            "outline": 2,
+            "center_dot_enabled": false,
+            "follow_recoil": false,
+            "fixed_crosshair_gap": 0,
+            "t_style_enabled": true,
+            "deployed_weapon_gap_enabled": true,
+            "split_distance": 5,
+            "inner_split_alpha": 1.2,
+            "outer_split_alpha": 0.2,
+            "split_size_ratio": 0.8
+          }
+        }
+      ]
+    },
+    {
+      "slug": "sample-f",
+      "name": "样本选手 F",
+      "real_name": null,
+      "country": "BR",
+      "role": "lurker",
+      "status": "active",
+      "sort_order": 6,
+      "team": "sample-bravo",
+      "settings": {
+        "sensitivity": 1.1,
+        "dpi": 800,
+        "zoom_sensitivity": 1,
+        "windows_sensitivity": 6,
+        "polling_rate": 1000,
+        "raw_input": true,
+        "resolution": "1280x1024",
+        "aspect_ratio": "5:4",
+        "scaling_mode": "stretch",
+        "refresh_rate": 240,
+        "brightness": 90,
+        "display_mode": "fullscreen",
+        "multisampling": 4,
+        "boost_player_contrast": "enabled",
+        "mouse": "Finalmouse UltralightX",
+        "mousepad": "Lethal Gaming Gear Venus",
+        "keyboard": "Corsair K70 Pro Mini",
+        "headset": "Logitech G Pro X",
+        "monitor": "ZOWIE XL2566K",
+        "launch_options": "-novid -high +fps_max 400"
+      },
+      "tenures": [
+        {
+          "team": "sample-bravo",
+          "role": "lurker",
+          "start_date": "2025-02-14",
+          "end_date": null
+        }
+      ],
+      "crosshairs": [
+        {
+          "captured_at": "2026-06-19",
+          "params": {
+            "style": 2,
+            "length": 2,
+            "thickness": 0.5,
+            "gap": -1.5,
+            "color": 5,
+            "red": 255,
+            "green": 0,
+            "blue": 255,
+            "alpha_enabled": true,
+            "alpha": 255,
+            "outline_enabled": true,
+            "outline": 0.5,
+            "center_dot_enabled": true,
+            "follow_recoil": false,
+            "fixed_crosshair_gap": 0,
+            "t_style_enabled": false,
+            "deployed_weapon_gap_enabled": true,
+            "split_distance": 2,
+            "inner_split_alpha": 0.8,
+            "outer_split_alpha": 0.4,
+            "split_size_ratio": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "slug": "sample-g",
+      "name": "样本选手 G",
+      "real_name": null,
+      "country": "SE",
+      "role": "rifler",
+      "status": "active",
+      "sort_order": 7,
+      "team": "sample-charlie",
+      "settings": {
+        "sensitivity": 1.65,
+        "dpi": 800,
+        "zoom_sensitivity": 0.85,
+        "windows_sensitivity": 6,
+        "polling_rate": 1000,
+        "raw_input": true,
+        "resolution": "1920x1080",
+        "aspect_ratio": "16:9",
+        "scaling_mode": "aspect",
+        "refresh_rate": 360,
+        "brightness": 100,
+        "display_mode": "fullscreen",
+        "multisampling": 8,
+        "boost_player_contrast": "enabled",
+        "mouse": "Endgame Gear XM2we",
+        "mousepad": "Xtrfy GP5",
+        "keyboard": "Fnatic Streak65",
+        "headset": "EPOS H6Pro",
+        "monitor": "Alienware AW2524H",
+        "launch_options": "-novid"
+      },
+      "tenures": [
+        {
+          "team": "sample-charlie",
+          "role": "rifler",
+          "start_date": "2022-01-10",
+          "end_date": null
+        }
+      ],
+      "crosshairs": [
+        {
+          "captured_at": "2026-02-27",
+          "params": {
+            "style": 4,
+            "length": 4.5,
+            "thickness": 1,
+            "gap": -2.5,
+            "color": 1,
+            "red": 0,
+            "green": 255,
+            "blue": 0,
+            "alpha_enabled": true,
+            "alpha": 255,
+            "outline_enabled": true,
+            "outline": 1,
+            "center_dot_enabled": false,
+            "follow_recoil": true,
+            "fixed_crosshair_gap": 0,
+            "t_style_enabled": false,
+            "deployed_weapon_gap_enabled": true,
+            "split_distance": 7,
+            "inner_split_alpha": 0.5,
+            "outer_split_alpha": 1.5,
+            "split_size_ratio": 1.3
+          }
+        }
+      ]
+    },
+    {
+      "slug": "sample-h",
+      "name": "样本选手 H",
+      "real_name": null,
+      "country": "PL",
+      "role": "awper",
+      "status": "inactive",
+      "sort_order": 8,
+      "team": "sample-charlie",
+      "settings": {
+        "sensitivity": 0.9,
+        "dpi": 1600,
+        "zoom_sensitivity": 1,
+        "windows_sensitivity": 6,
+        "polling_rate": 4000,
+        "raw_input": true,
+        "resolution": "2560x1440",
+        "aspect_ratio": "16:9",
+        "scaling_mode": "aspect",
+        "refresh_rate": 240,
+        "brightness": 115,
+        "display_mode": "fullscreen",
+        "multisampling": 8,
+        "boost_player_contrast": "enabled",
+        "mouse": "Pulsar X2V2",
+        "mousepad": "Artisan Raiden Mid",
+        "keyboard": "Wooting 60HE",
+        "headset": "Beyerdynamic MMX 300",
+        "monitor": "LG UltraGear 27GR95QE",
+        "launch_options": "-novid -high"
+      },
+      "tenures": [
+        {
+          "team": "sample-delta",
+          "role": "awper",
+          "start_date": "2020-05-18",
+          "end_date": "2023-04-22"
+        },
+        {
+          "team": "sample-charlie",
+          "role": "awper",
+          "start_date": "2023-05-30",
+          "end_date": null
+        }
+      ],
+      "crosshairs": [
+        {
+          "captured_at": "2025-10-08",
+          "params": {
+            "style": 2,
+            "length": 1.5,
+            "thickness": 1,
+            "gap": -5,
+            "color": 0,
+            "red": 255,
+            "green": 0,
+            "blue": 0,
+            "alpha_enabled": true,
+            "alpha": 255,
+            "outline_enabled": true,
+            "outline": 1,
+            "center_dot_enabled": true,
+            "follow_recoil": false,
+            "fixed_crosshair_gap": 0,
+            "t_style_enabled": false,
+            "deployed_weapon_gap_enabled": true,
+            "split_distance": 2,
+            "inner_split_alpha": 0.8,
+            "outer_split_alpha": 0.4,
+            "split_size_ratio": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "slug": "sample-i",
+      "name": "样本选手 I",
+      "real_name": null,
+      "country": "US",
+      "role": "entry",
+      "status": "active",
+      "sort_order": 9,
+      "team": "sample-delta",
+      "settings": {
+        "sensitivity": 2.5,
+        "dpi": 450,
+        "zoom_sensitivity": 0.9,
+        "windows_sensitivity": 6,
+        "polling_rate": 1000,
+        "raw_input": true,
+        "resolution": "1280x960",
+        "aspect_ratio": "4:3",
+        "scaling_mode": "stretch",
+        "refresh_rate": 240,
+        "brightness": 100,
+        "display_mode": "fullscreen",
+        "multisampling": 4,
+        "boost_player_contrast": "enabled",
+        "mouse": "Logitech G305",
+        "mousepad": "SteelSeries QcK Heavy",
+        "keyboard": "Logitech G Pro X TKL",
+        "headset": "HyperX Cloud III",
+        "monitor": "ViewSonic XG2431",
+        "launch_options": "-novid"
+      },
+      "tenures": [
+        {
+          "team": "sample-delta",
+          "role": "entry",
+          "start_date": "2024-09-01",
+          "end_date": null
+        }
+      ],
+      "crosshairs": [
+        {
+          "captured_at": "2026-07-15",
+          "params": {
+            "style": 4,
+            "length": 6,
+            "thickness": 2,
+            "gap": -1,
+            "color": 3,
+            "red": 0,
+            "green": 0,
+            "blue": 255,
+            "alpha_enabled": true,
+            "alpha": 200,
+            "outline_enabled": false,
+            "outline": 1,
+            "center_dot_enabled": false,
+            "follow_recoil": false,
+            "fixed_crosshair_gap": 0,
+            "t_style_enabled": false,
+            "deployed_weapon_gap_enabled": false,
+            "split_distance": 0,
+            "inner_split_alpha": 1.5,
+            "outer_split_alpha": 0,
+            "split_size_ratio": 0.5
+          }
+        }
+      ]
+    },
+    {
+      "slug": "sample-j",
+      "name": "样本选手 J",
+      "real_name": null,
+      "country": "CN",
+      "role": "support",
+      "status": "active",
+      "sort_order": 10,
+      "team": "sample-delta",
+      "settings": {
+        "sensitivity": 3.6,
+        "dpi": 400,
+        "zoom_sensitivity": 1,
+        "windows_sensitivity": 11,
+        "polling_rate": 500,
+        "raw_input": false,
+        "resolution": "1920x1080",
+        "aspect_ratio": "16:9",
+        "scaling_mode": "aspect",
+        "refresh_rate": 144,
+        "brightness": 120,
+        "display_mode": "borderless",
+        "multisampling": 0,
+        "boost_player_contrast": "disabled",
+        "mouse": "VGN Dragonfly F1 Pro",
+        "mousepad": "Kappa Speed",
+        "keyboard": "VXE ATK 75",
+        "headset": "EDIFIER Hecate G2000",
+        "monitor": "HKC VG245",
+        "launch_options": "-novid -fullscreen"
+      },
+      "tenures": [
+        {
+          "team": "sample-alpha",
+          "role": "support",
+          "start_date": "2022-03-08",
+          "end_date": "2025-06-15"
+        },
+        {
+          "team": "sample-delta",
+          "role": "support",
+          "start_date": "2025-07-01",
+          "end_date": null
+        }
+      ],
+      "crosshairs": [
+        {
+          "captured_at": "2025-09-25",
+          "params": {
+            "style": 1,
+            "length": 3,
+            "thickness": 1,
+            "gap": -2,
+            "color": 1,
+            "red": 0,
+            "green": 255,
+            "blue": 0,
+            "alpha_enabled": true,
+            "alpha": 255,
+            "outline_enabled": true,
+            "outline": 3,
+            "center_dot_enabled": false,
+            "follow_recoil": false,
+            "fixed_crosshair_gap": 0,
+            "t_style_enabled": true,
+            "deployed_weapon_gap_enabled": true,
+            "split_distance": 2,
+            "inner_split_alpha": 0.8,
+            "outer_split_alpha": 0.4,
+            "split_size_ratio": 1.5
+          }
+        },
+        {
+          "captured_at": "2026-08-01",
+          "params": {
+            "style": 1,
+            "length": 3,
+            "thickness": 1,
+            "gap": -2,
+            "color": 6,
+            "red": 255,
+            "green": 200,
+            "blue": 60,
+            "alpha_enabled": true,
+            "alpha": 255,
+            "outline_enabled": true,
+            "outline": 2,
+            "center_dot_enabled": false,
+            "follow_recoil": false,
+            "fixed_crosshair_gap": 0,
+            "t_style_enabled": true,
+            "deployed_weapon_gap_enabled": true,
+            "split_distance": 2,
+            "inner_split_alpha": 0.8,
+            "outer_split_alpha": 0.4,
+            "split_size_ratio": 1.5
+          }
+        }
+      ],
+      "keybinds": [
+        {
+          "action": "jumpthrow",
+          "key": "mouse3",
+          "raw_command": "mouse3 \"+jump; -attack; -jump\""
+        }
+      ]
+    }
+  ]
+}

@@ -8,6 +8,17 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${ROOT}/deploy/.env"
 
+# 本机的 Node 是绿色解压在 .tools/node/，不在系统 PATH 上，
+# 下面裸调 npm 会直接 command not found 并被 set -e 中断。
+# ROOT 由 pwd 得来，在 Git Bash 下是 Unix 风格（/d/...），可以直接拼进 PATH；
+# 用 Windows 风格的 D:/... 则不生效。
+if [[ -d "${ROOT}/.tools/node" ]]; then
+  export PATH="${ROOT}/.tools/node:${PATH}"
+fi
+command -v npm >/dev/null 2>&1 || {
+  echo "找不到 npm。请把 Node 解压到 ${ROOT}/.tools/node/，或自行确保 npm 在 PATH 上"; exit 1;
+}
+
 [[ -f "$ENV_FILE" ]] || { echo "缺少 ${ENV_FILE}，先 cp deploy/.env.example deploy/.env 并填写"; exit 1; }
 # shellcheck disable=SC1090
 source "$ENV_FILE"

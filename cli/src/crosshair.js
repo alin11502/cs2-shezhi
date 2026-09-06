@@ -7,8 +7,27 @@ async function sharecode() {
   return _sc;
 }
 
-// 准星分享码的 19 字节载荷只携带下面这 17 项。字段名映射到
-// crosshair_snapshots 的列名（snake_case），与 server/pb_migrations 保持一致。
+/**
+ * 准星分享码携带的**全部 21 项**参数。
+ * camelCase 是 csgo-sharecode 的字段名，snake_case 是 crosshair_snapshots 的列名，
+ * 与 server/pb_migrations 保持一致。
+ *
+ * ⚠ 这里曾经只有 17 项 —— 早先误判 split_distance / inner_split_alpha /
+ * outer_split_alpha / split_size_ratio "不在码里、解码器永远返回引擎默认值
+ * 2/0.8/0.4/1.5"。该结论已被源码与实测双重证伪：
+ *
+ *   splitDistance    = bytes[8] & 7              域 0–7，  步进 1
+ *   innerSplitAlpha  = (bytes[10] >> 4) / 10     域 0–1.5，步进 0.1
+ *   outerSplitAlpha  = (bytes[11] & 0xf) / 10    域 0–1.5，步进 0.1
+ *   splitSizeRatio   = (bytes[11] >> 4) / 10     域 0–1.5，步进 0.1
+ *
+ * 编码器把它们写回同样的位（见 csgo-sharecode/src/index.ts L203/205-206）。
+ * 真实第三方码 CSGO-UseJt-3oTvn-47wPX-hEyER-WZfiK 解出的是 3/0.1/1/1，
+ * 不是默认值；用完整 21 字段原样重编码可**字节级还原**。
+ *
+ * 早先误判的原因是样本太窄：只测了自己生成的、恰好都用默认值的码。
+ * 后果是重编码真实选手的码会销毁他实际的动态准星设置，且下载的 CFG 缺 4 行。
+ */
 const ENCODED_FIELDS = {
   style: "style",
   length: "length",
@@ -27,33 +46,27 @@ const ENCODED_FIELDS = {
   fixedCrosshairGap: "fixed_crosshair_gap",
   tStyleEnabled: "t_style_enabled",
   deployedWeaponGapEnabled: "deployed_weapon_gap_enabled",
-};
-
-// 这四个字段**不在**准星码里。解码器对任何码都返回 CS2 默认值
-// （2 / 0.8 / 0.4 / 1.5），把它们当成"选手的设置"展示就是假数据，
-// 所以单独隔离，前台必须明确标注为引擎默认值而非选手配置。
-const NOT_IN_CODE_FIELDS = {
+  // 动态准星（style=4）的分裂行为参数。静态样式下不影响外观，但仍是选手的设置，
+  // 且确实编码在码里，所以必须原样保留、原样导出。
   splitDistance: "split_distance",
   innerSplitAlpha: "inner_split_alpha",
   outerSplitAlpha: "outer_split_alpha",
   splitSizeRatio: "split_size_ratio",
 };
 
-const NOT_IN_CODE_DEFAULTS = Object.freeze({
+/**
+ * 上面 4 项动态参数的 CS2 引擎默认值。
+ *
+ * 语义已从"码外默认值"更正为**回填值**：只在调用方没提供这 4 项时才用，
+ * 例如消费旧版导出 JSON（那时还没有这些字段）。任何情况下都不得用它们
+ * 覆盖已有的真值 —— 那正是先前数据丢失 bug 的成因。
+ */
+const SPLIT_DEFAULTS = Object.freeze({
   split_distance: 2,
   inner_split_alpha: 0.8,
   outer_split_alpha: 0.4,
   split_size_ratio: 1.5,
 });
-
-// crosshairToConVars 会把这些默认值渲染成 cl_crosshair_dynamic_* 行。
-// 生成"下载 CFG"时必须剔除，否则用户拿到的是一段伪配置。
-const MISLEADING_CONVAR_PREFIXES = [
-  "cl_crosshair_dynamic_maxdist_splitratio",
-  "cl_crosshair_dynamic_splitalpha_innermod",
-  "cl_crosshair_dynamic_splitalpha_outermod",
-  "cl_crosshair_dynamic_splitdist",
-];
 
 function pick(decoded, mapping) {
   const out = {};
@@ -67,7 +80,7 @@ function pick(decoded, mapping) {
 // 解码结果里凡是超出映射表的键，都算"未知字段"。库升级后新增字段会落在这里，
 // 提示我们需要更新 schema，而不是被静默丢弃。
 function unknownFields(decoded) {
-  const known = new Set([...Object.keys(ENCODED_FIELDS), ...Object.keys(NOT_IN_CODE_FIELDS)]);
+  const known = new Set(Object.keys(ENCODED_FIELDS));
   return Object.keys(decoded).filter((k) => !known.has(k));
 }
 
@@ -76,42 +89,49 @@ async function decode(code) {
   return sc.decodeCrosshairShareCode(code);
 }
 
+/**
+ * snake_case 参数 → 准星码。
+ *
+ * 缺失的字段才回填：4 项动态参数用 SPLIT_DEFAULTS，其余用 0。
+ * 已有的值一律原样透传，绝不覆盖。
+ */
 async function encode(params) {
   const sc = await sharecode();
-  // encode 需要完整的 21 字段；缺失的 4 项用引擎默认值补齐。
-  const inverted = {};
-  for (const [src, dst] of Object.entries(ENCODED_FIELDS)) inverted[dst] = src;
-  for (const [src, dst] of Object.entries(NOT_IN_CODE_FIELDS)) inverted[dst] = src;
 
   const full = {};
-  for (const [snake, camel] of Object.entries(inverted)) {
-    full[camel] = params[snake] !== undefined && params[snake] !== null ? params[snake] : NOT_IN_CODE_DEFAULTS[snake];
+  for (const [camel, snake] of Object.entries(ENCODED_FIELDS)) {
+    const v = params[snake];
+    if (v !== undefined && v !== null) {
+      full[camel] = v;
+    } else if (snake in SPLIT_DEFAULTS) {
+      full[camel] = SPLIT_DEFAULTS[snake];
+    } else {
+      full[camel] = 0;
+    }
   }
   return sc.encodeCrosshair(full);
 }
 
-// 生成可直接放进 autoexec.cfg 的文本。默认剔除那 4 行伪配置。
-async function toConVars(codeOrParams, { includeDefaults = false } = {}) {
+/**
+ * 生成可直接放进 autoexec.cfg 的文本，21 项一行不少。
+ *
+ * 早先这里会剔除 4 行 cl_crosshair_dynamic_*，理由是"它们不在码里、是伪配置"。
+ * 该理由已证伪，剔除等于把选手的真实配置丢掉，所以不再过滤。
+ *
+ * @param codeOrParams 准星码字符串，或已解码的 camelCase 对象
+ */
+async function toConVars(codeOrParams) {
   const sc = await sharecode();
   const decoded = typeof codeOrParams === "string" ? await decode(codeOrParams) : codeOrParams;
-  const text = sc.crosshairToConVars(decoded);
-  if (includeDefaults) return text;
-  return text
-    .split("\n")
-    .filter((line) => !MISLEADING_CONVAR_PREFIXES.some((p) => line.trimStart().startsWith(p + " ")))
-    .join("\n")
-    .trimEnd();
+  return sc.crosshairToConVars(decoded);
 }
 
 module.exports = {
   ENCODED_FIELDS,
-  NOT_IN_CODE_FIELDS,
-  NOT_IN_CODE_DEFAULTS,
-  MISLEADING_CONVAR_PREFIXES,
+  SPLIT_DEFAULTS,
   decode,
   encode,
   toConVars,
   unknownFields,
   pickEncoded: (decoded) => pick(decoded, ENCODED_FIELDS),
-  pickNotInCode: (decoded) => pick(decoded, NOT_IN_CODE_FIELDS),
 };
