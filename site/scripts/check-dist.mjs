@@ -180,20 +180,30 @@ section("4. 无 JS 准星可见性（内联 SVG，不靠客户端渲染）");
 const playerPages = htmlFiles.filter((f) => /^players\/[^/]+\/index\.html$/.test(f.rel));
 check("选手详情页已生成", playerPages.length > 0, `找到 ${playerPages.length} 个`);
 
-const noSvg = [];
+const noCrosshairContent = [];
 const tooFewRects = [];
 for (const f of playerPages) {
   const html = fs.readFileSync(f.abs, "utf8");
-  if (!/<svg[^>]*viewBox="0 0 200 200"/.test(html)) {
-    noSvg.push(f.rel);
+  const hasSvg = /<svg[^>]*viewBox="0 0 200 200"/.test(html);
+  // 没有准星的选手（如只从 prosettings 取了设置、准星待 demo 提取）
+  // 页面上本来就没有准星 SVG，而是显示占位提示；两者必居其一
+  const hasPlaceholder = html.includes("准星数据待补充");
+  if (!hasSvg && !hasPlaceholder) {
+    noCrosshairContent.push(f.rel);
     continue;
   }
-  // 一个完整十字准星至少 4 个臂；开描边会翻倍。少于 3 个 rect 说明几何没渲染出来
-  const rectCount = (html.match(/<rect /g) || []).length;
-  if (rectCount < 3) tooFewRects.push(`${f.rel}: 只有 ${rectCount} 个 rect`);
+  if (hasSvg) {
+    // 一个完整十字准星至少 4 个臂；开描边会翻倍。少于 3 个 rect 说明几何没渲染出来
+    const rectCount = (html.match(/<rect /g) || []).length;
+    if (rectCount < 3) tooFewRects.push(`${f.rel}: 只有 ${rectCount} 个 rect`);
+  }
 }
-check("每个选手详情页都含内联准星 SVG", noSvg.length === 0, noSvg.join(", "));
-check("SVG 里的 rect 数量合理（≥3）", tooFewRects.length === 0, tooFewRects.join("; "));
+check(
+  "每个选手详情页要么有内联准星 SVG、要么有准星待补充占位",
+  noCrosshairContent.length === 0,
+  noCrosshairContent.join(", ")
+);
+check("有准星的页面 SVG rect 数量合理（≥3）", tooFewRects.length === 0, tooFewRects.join("; "));
 
 // 页面不应依赖 JS 才能看到内容：检查是否有 <script> 承担渲染职责
 const renderScripts = [];

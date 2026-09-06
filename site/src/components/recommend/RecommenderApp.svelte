@@ -13,7 +13,7 @@
   import { startPsa, nextState, encodeState, decodeState, PSA_MAX_ROUNDS, type PsaChoice } from "../../lib/recommend/psa.ts";
   import { edpiStats } from "../../lib/recommend/pro-stats.ts";
   import { cm360 } from "../../lib/format.ts";
-  import CrosshairPreview from "../crosshair/CrosshairPreview.svelte";
+  import CrosshairScene from "../crosshair/CrosshairScene.svelte";
   import type { Answers, Recommendation, PlayerMatch, PsaState } from "../../lib/recommend/types.ts";
   import type { PlayerSettings } from "../../lib/types.ts";
 
@@ -205,7 +205,7 @@
     <section class="grid gap-6 lg:grid-cols-[auto_1fr]" aria-labelledby="rec-result">
       <div class="space-y-3">
         <h2 id="rec-result" class="text-lg font-bold">推荐准星</h2>
-        <CrosshairPreview params={rec.crosshair.params} size={180} title="推荐准星预览" />
+        <CrosshairScene params={rec.crosshair.params} size={300} />
         <p class="text-xs text-base-content/60">
           想微调或拿分享码？把它复制到
           <a href="/crosshair" class="link link-hover">准星编辑器</a>里继续调。

@@ -147,9 +147,11 @@ async function main() {
       };
 
       players.push({
+        // prosettings 的 name 字段是真实姓名；站点的 name 用游戏 ID（= URL slug），
+        // 真实姓名进 real_name。否则标题用真实姓名会超 60 字符，也不符合内容站习惯。
         slug,
-        name: id.name ?? slug,
-        real_name: null,
+        name: slug,
+        real_name: id.name,
         country: id.country ? id.country.slice(0, 2).toUpperCase() : null,
         team: id.team,
         settings,

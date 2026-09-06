@@ -14,7 +14,7 @@
   import { paramsToConVars } from "../../lib/crosshair/convars.ts";
   import { RANGES, UI_MAX } from "../../lib/crosshair/clamp.ts";
   import { PARAM_META, STYLE_LABELS, COLOR_LABELS, DYNAMIC_ONLY_PARAMS } from "../../lib/crosshair/fields.ts";
-  import CrosshairPreview from "./CrosshairPreview.svelte";
+  import CrosshairScene from "./CrosshairScene.svelte";
 
   const INITIAL: Record<string, number | boolean> = {
     style: 4, length: 4, thickness: 1, gap: -2, color: 1,
@@ -66,7 +66,7 @@
 
 <div class="grid gap-6 lg:grid-cols-[auto_1fr]">
   <div class="space-y-3">
-    <CrosshairPreview params={params} size={220} title="编辑器实时预览" />
+    <CrosshairScene params={params} size={300} />
 
     {#if result.code}
       <div class="space-y-2">
