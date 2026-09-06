@@ -17,17 +17,23 @@ export interface MapBg {
   to: string;
   /** 地面/墙面的大致明暗，用于决定准星描边是否必要 */
   tone: "light" | "dark" | "mixed";
+  /**
+   * 场景几何参数，用于渲染"天空+地面+斜墙"的画面感而不是一个底色：
+   * horizon 是地平线高度（0–1，越小天空越多），wall 是两侧墙的倾角（度），
+   * mid 是墙体中间色。取值按各地图的视觉印象手调。
+   */
+  scene: { horizon: number; wall: number; mid: string };
 }
 
 export const MAPS: MapBg[] = [
-  { slug: "de_mirage", name: " Mirage", from: "#8a7a5c", to: "#4a4132", tone: "mixed" },
-  { slug: "de_dust2", name: "Dust II", from: "#a8905e", to: "#5c4c30", tone: "light" },
-  { slug: "de_inferno", name: "Inferno", from: "#7a5a3a", to: "#3a2c1e", tone: "mixed" },
-  { slug: "de_nuke", name: "Nuke", from: "#5a6a5a", to: "#2a322c", tone: "dark" },
-  { slug: "de_overpass", name: "Overpass", from: "#4a5a4a", to: "#26302a", tone: "dark" },
-  { slug: "de_ancient", name: "Ancient", from: "#4e5a48", to: "#28302a", tone: "dark" },
-  { slug: "de_anubis", name: "Anubis", from: "#8a7440", to: "#3e341e", tone: "mixed" },
-  { slug: "de_vertigo", name: "Vertigo", from: "#5a6470", to: "#2a3038", tone: "dark" },
+  { slug: "de_mirage", name: " Mirage", from: "#9aa7b8", to: "#6b5c42", tone: "mixed", scene: { horizon: 0.42, wall: 18, mid: "#8a7a5c" } },
+  { slug: "de_dust2", name: "Dust II", from: "#c8b088", to: "#7a6440", tone: "light", scene: { horizon: 0.4, wall: 12, mid: "#a8905e" } },
+  { slug: "de_inferno", name: "Inferno", from: "#b08858", to: "#4a3826", tone: "mixed", scene: { horizon: 0.45, wall: 22, mid: "#7a5a3a" } },
+  { slug: "de_nuke", name: "Nuke", from: "#8fa0a0", to: "#3a4444", tone: "dark", scene: { horizon: 0.5, wall: 8, mid: "#5a6a6a" } },
+  { slug: "de_overpass", name: "Overpass", from: "#8aa08a", to: "#33403a", tone: "dark", scene: { horizon: 0.46, wall: 15, mid: "#4a5a4a" } },
+  { slug: "de_ancient", name: "Ancient", from: "#7a8a70", to: "#2e382c", tone: "dark", scene: { horizon: 0.44, wall: 20, mid: "#4e5a48" } },
+  { slug: "de_anubis", name: "Anubis", from: "#c0a060", to: "#4a3c22", tone: "mixed", scene: { horizon: 0.4, wall: 25, mid: "#8a7440" } },
+  { slug: "de_vertigo", name: "Vertigo", from: "#90a0b0", to: "#3a4450", tone: "dark", scene: { horizon: 0.55, wall: 6, mid: "#5a6470" } },
 ];
 
 export type AspectMode = "16:9" | "4:3-stretch" | "4:3-blackbars" | "4:3-native";

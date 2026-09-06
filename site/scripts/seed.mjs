@@ -378,6 +378,12 @@ async function main() {
           mouse: s.mouse ?? "", mousepad: s.mousepad ?? "", keyboard: s.keyboard ?? "",
           headset: s.headset ?? "", monitor: s.monitor ?? "",
           launch_options: s.launch_options ?? "",
+          // viewmodel 是选手级设置（迁移 1756900500 新增列）
+          viewmodel_fov: s.viewmodel_fov ?? null,
+          viewmodel_offset_x: s.viewmodel_offset_x ?? null,
+          viewmodel_offset_y: s.viewmodel_offset_y ?? null,
+          viewmodel_offset_z: s.viewmodel_offset_z ?? null,
+          viewmodel_presetpos: s.viewmodel_presetpos ?? null,
           source: s.source, confidence: s.confidence,
           evidence_url: txt(s.evidence_url), notes: txt(s.notes),
           verified_at: s.verified_at,

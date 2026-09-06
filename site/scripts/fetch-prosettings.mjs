@@ -85,6 +85,12 @@ function parseIdentity(html) {
   return { name: grab("name"), country: grab("country"), team: grab("team") };
 }
 
+// 外设（鼠标/键盘/显示器/耳机/鼠标垫）**不在此来源解析**。
+// 实测 gear 区块有 41 个 cta-box 但大部分是促销块，类别标签不在可识别的结构里，
+// 启发式解析会把 PC 配置里的 GPU 当成显示器、鼠标全漏。错数据比缺数据更糟，
+// 所以外设留 null，靠人工录入或后续更仔细的解析补。
+// viewmodel 可靠（设置表里的 fov/offsets/presetpos），照常解析。
+
 async function fetchPlayer(slug) {
   fs.mkdirSync(CACHE_DIR, { recursive: true });
   const cacheFile = path.join(CACHE_DIR, `${slug}.html`);
@@ -127,16 +133,24 @@ async function main() {
         resolution: out.resolution ?? null,
         aspect_ratio: out.aspectratio ?? null,
         scaling_mode: out.scalingmode ?? null,
-        refresh_rate: out.hz ?? null,
+        // 刷新率在显示器规格块里，类别探测不可靠，留 null
+        refresh_rate: null,
         brightness: out.brightness ?? null,
         display_mode: out.displaymode ?? null,
         multisampling: null,
         boost_player_contrast: out.boostplayercontrast ?? null,
-        mouse: out.mouse ?? null,
-        mousepad: out.mousepad ?? null,
-        keyboard: out.keyboard ?? null,
-        headset: out.headset ?? null,
-        monitor: out.monitor ?? null,
+        // 外设不在此来源解析（见上方注释），留 null
+        mouse: null,
+        mousepad: null,
+        keyboard: null,
+        headset: null,
+        monitor: null,
+        // viewmodel 是选手级设置；prosettings 设置表里有 fov/offsets/presetpos
+        viewmodel_fov: out.fov ?? null,
+        viewmodel_offset_x: out.offsetx ?? null,
+        viewmodel_offset_y: out.offsety ?? null,
+        viewmodel_offset_z: out.offsetz ?? null,
+        viewmodel_presetpos: out.presetpos ?? null,
         launch_options: null,
         // 每条都带证据链接与核对日期；置信度最高 medium（第三方人工维护）
         source: "third_party",

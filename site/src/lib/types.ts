@@ -178,6 +178,13 @@ export interface PlayerSettings extends PbBase, Provenance {
   headset: string | null;
   monitor: string | null;
 
+  /** 持枪视角（选手级设置，迁移 1756900500 新增列） */
+  viewmodel_fov: number | null;
+  viewmodel_offset_x: number | null;
+  viewmodel_offset_y: number | null;
+  viewmodel_offset_z: number | null;
+  viewmodel_presetpos: number | null;
+
   launch_options: string | null;
   notes: string | null;
   /** 人工录入的数据会过时，前台据此提示"核关于 X" */

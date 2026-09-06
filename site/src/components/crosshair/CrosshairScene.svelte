@@ -28,6 +28,9 @@
   const boxAspect = $derived(boxAspectFor(mode));
   const modeNote = $derived(ASPECT_MODES.find((m) => m.id === mode)?.note ?? "");
   const imgSrc = $derived(`/maps/${map.slug}.jpg`);
+  // 场景几何：地平线高度与墙宽。{@const} 不能作为 svg 的子节点，所以放这里
+  const hy = $derived(map.scene.horizon * 90);
+  const wl = $derived(30 + map.scene.wall * 0.4);
 </script>
 
 <div class="space-y-3">
@@ -45,11 +48,21 @@
     </select>
   </div>
 
-  <!-- 画面盒子：比例由模式决定；背景优先真实截图，失败回落渐变 -->
+  <!-- 画面盒子：比例由模式决定 -->
   <div
     class="relative w-full overflow-hidden rounded-box border border-base-300"
-    style="aspect-ratio:{boxAspect};background:linear-gradient(160deg,{map.from},{map.to})"
+    style="aspect-ratio:{boxAspect}"
   >
+    <!-- 场景底层：天空+地面+两侧斜墙，按地图色调参数化。
+         有真实截图（public/maps/<slug>.jpg）时 img 会盖住它 -->
+    <svg class="absolute inset-0 h-full w-full" viewBox="0 0 160 90" preserveAspectRatio="none" aria-hidden="true">
+      <rect x="0" y="0" width="160" height={hy} fill={map.from} />
+      <rect x="0" y={hy} width="160" height={90 - hy} fill={map.to} />
+      <polygon points={`0,90 0,${hy - 8} ${wl},${hy + 6} 34,90`} fill={map.scene.mid} />
+      <polygon points={`160,90 160,${hy - 8} ${160 - wl},${hy + 6} 126,90`} fill={map.scene.mid} />
+      <rect x="0" y={hy - 1} width="160" height="1.5" fill="#000" opacity="0.25" />
+    </svg>
+
     <img
       src={imgSrc}
       alt=""
@@ -72,7 +85,7 @@
     </div>
 
     <span class="absolute bottom-1.5 right-2 rounded bg-black/50 px-1.5 py-0.5 text-[10px] text-white/80">
-      {map.name} · 示意背景
+      {map.name} · 示意场景（放 public/maps/{map.slug}.jpg 可换真实截图）
     </span>
   </div>
 

@@ -157,6 +157,12 @@ function trim(r, collection) {
         headset: str(r.headset),
         monitor: str(r.monitor),
         launch_options: str(r.launch_options),
+        // viewmodel 是选手级设置（迁移 1756900500 新增列）
+        viewmodel_fov: num(r.viewmodel_fov),
+        viewmodel_offset_x: num(r.viewmodel_offset_x),
+        viewmodel_offset_y: num(r.viewmodel_offset_y),
+        viewmodel_offset_z: num(r.viewmodel_offset_z),
+        viewmodel_presetpos: num(r.viewmodel_presetpos),
         source: str(r.source),
         confidence: str(r.confidence),
         evidence_url: str(r.evidence_url),
