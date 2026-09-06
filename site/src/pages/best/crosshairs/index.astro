@@ -1,0 +1,142 @@
+---
+import BaseLayout from "../../../components/layout/BaseLayout.astro";
+import DistributionList from "../../../components/ui/DistributionList.astro";
+import { pageTitle } from "../../../config";
+import {
+  MIN_SAMPLE_FOR_STATS,
+  counts,
+  getCurrentCrosshair,
+  hasEnoughSample,
+  listPlayersWithCrosshair,
+} from "../../../lib/data";
+import { colorLabel, styleLabel } from "../../../lib/format";
+import type { Snapshot } from "../../../lib/types";
+
+/**
+ * 只统计每名选手的**当前**准星。
+ * 把历史版本也算进去会让用得久、记录多的选手权重虚高，分布就失真了。
+ */
+const rows = listPlayersWithCrosshair()
+  .map((p) => getCurrentCrosshair(p.id))
+  .filter((s): s is Snapshot => Boolean(s));
+
+const enough = hasEnoughSample(rows.length);
+
+function tally<T extends string | number>(pick: (s: Snapshot) => T | null): { label: string; count: number }[] {
+  const m = new Map<string, number>();
+  for (const s of rows) {
+    const v = pick(s);
+    if (v === null || v === undefined || v === "") continue;
+    const key = String(v);
+    m.set(key, (m.get(key) ?? 0) + 1);
+  }
+  return [...m.entries()].map(([label, count]) => ({ label, count }));
+}
+
+const styleDist = tally((s) => (s.style === null ? null : `${s.style} · ${styleLabel(s.style) ?? "?"}`));
+const colorDist = tally((s) => (s.color === null ? null : colorLabel(s.color)));
+const lengthDist = tally((s) => s.length);
+const gapDist = tally((s) => s.gap);
+const thicknessDist = tally((s) => s.thickness);
+const dotDist = tally((s) => (s.center_dot_enabled === null ? null : s.center_dot_enabled ? "开中心点" : "不开中心点"));
+const outlineDist = tally((s) => (s.outline_enabled === null ? null : s.outline_enabled ? `描边 ${s.outline}` : "无描边"));
+const tDist = tally((s) => (s.t_style_enabled === null ? null : s.t_style_enabled ? "T 型（无上臂）" : "完整四臂"));
+
+const title = pageTitle(`职业选手准星统计：${rows.length} 名选手最常用的样式与参数`);
+const description = enough
+  ? `基于本站收录的 ${rows.length} 名 CS2 职业选手当前准星，统计最常用的样式、颜色、长度、间隙、粗细与描边分布，附每项占比。`
+  : `CS2 职业选手准星参数统计。数据库建设中，当前收录 ${rows.length} 名选手，样本量达到 ${MIN_SAMPLE_FOR_STATS} 人后展示分布。`;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path="/best/crosshairs"
+  jsonLd={{
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "CS2 职业选手准星统计",
+    numberOfItems: rows.length,
+  }}
+  breadcrumbs={[
+    { label: "首页", href: "/" },
+    { label: "数据排行", href: "/best/crosshairs" },
+  ]}
+>
+  <header class="mb-6">
+    <h1 class="text-2xl font-extrabold sm:text-3xl">职业选手准星统计</h1>
+    <p class="mt-2 max-w-3xl text-sm text-base-content/70">
+      只统计每名选手的<strong class="text-base-content">当前</strong>准星（共 {rows.length} 人）。
+      历史版本不计入 —— 否则记录多的选手权重会虚高，分布就失真了。
+    </p>
+  </header>
+
+  {!enough ? (
+    <div class="alert alert-warning mb-6">
+      <div>
+        <h2 class="font-bold">数据库建设中</h2>
+        <p class="text-sm">
+          当前收录 {rows.length} 名有准星数据的选手，少于 {MIN_SAMPLE_FOR_STATS} 人的门槛。
+          用这么小的样本画分布图会误导人，所以暂时不展示。站点共收录
+          {counts.playersWithCrosshair} 名选手、{counts.distinctCodes} 个准星码，
+          可以直接<a href="/players" class="link link-hover">浏览选手</a>或
+          <a href="/crosshair" class="link link-hover">浏览准星码</a>。
+        </p>
+      </div>
+    </div>
+  ) : (
+    <div class="grid gap-6 lg:grid-cols-2">
+      <section class="rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="d-style">
+        <h2 id="d-style" class="mb-3 text-base font-bold">准星样式</h2>
+        <DistributionList items={styleDist} total={rows.length} />
+        <p class="mt-3 text-xs text-base-content/60">
+          0=默认，1=静态（经典），2=经典，3=内缩（精准），4=动态。
+          动态准星会随移动和开火向外扩张。
+        </p>
+      </section>
+
+      <section class="rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="d-color">
+        <h2 id="d-color" class="mb-3 text-base font-bold">准星颜色</h2>
+        <DistributionList items={colorDist} total={rows.length} />
+        <p class="mt-3 text-xs text-base-content/60">
+          「自定义」表示选手用了 RGB 自定义色而非预设。
+        </p>
+      </section>
+
+      <section class="rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="d-length">
+        <h2 id="d-length" class="mb-3 text-base font-bold">长度（cl_crosshairsize）</h2>
+        <DistributionList items={lengthDist} total={rows.length} unit="人" limit={10} />
+      </section>
+
+      <section class="rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="d-gap">
+        <h2 id="d-gap" class="mb-3 text-base font-bold">间隙（cl_crosshairgap）</h2>
+        <DistributionList items={gapDist} total={rows.length} unit="人" limit={10} />
+        <p class="mt-3 text-xs text-base-content/60">
+          负值表示四臂向中心收拢，职业选手普遍用负间隙。
+        </p>
+      </section>
+
+      <section class="rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="d-thickness">
+        <h2 id="d-thickness" class="mb-3 text-base font-bold">粗细（cl_crosshairthickness）</h2>
+        <DistributionList items={thicknessDist} total={rows.length} unit="人" limit={10} />
+      </section>
+
+      <section class="rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="d-extra">
+        <h2 id="d-extra" class="mb-3 text-base font-bold">其他开关</h2>
+        <h3 class="mb-2 text-xs font-semibold text-base-content/60">中心点</h3>
+        <DistributionList items={dotDist} total={rows.length} />
+        <h3 class="mt-4 mb-2 text-xs font-semibold text-base-content/60">描边</h3>
+        <DistributionList items={outlineDist} total={rows.length} limit={6} />
+        <h3 class="mt-4 mb-2 text-xs font-semibold text-base-content/60">T 型准星</h3>
+        <DistributionList items={tDist} total={rows.length} />
+      </section>
+    </div>
+  )}
+
+  <nav class="mt-8 flex flex-wrap gap-2 border-t border-base-300 pt-4 text-sm" aria-label="相关页面">
+    <a href="/best/sensitivity" class="btn btn-ghost btn-sm">灵敏度统计</a>
+    <a href="/best/gear" class="btn btn-ghost btn-sm">外设排行</a>
+    <a href="/players" class="btn btn-ghost btn-sm">全部选手</a>
+    <a href="/crosshair" class="btn btn-ghost btn-sm">准星码库</a>
+  </nav>
+</BaseLayout>

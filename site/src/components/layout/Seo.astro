@@ -1,0 +1,60 @@
+---
+import { SITE_URL, HAS_REAL_DOMAIN, SITE_NAME, SITE_DESCRIPTION } from "../../config";
+
+interface Props {
+  /** 完整标题（调用方负责用 pageTitle() 拼站点后缀） */
+  title: string;
+  description?: string;
+  /** 页面路径，如 /players/s1mple。用于拼 canonical 与 og:url */
+  path?: string;
+  /** 结构化数据，会序列化进 <script type="application/ld+json"> */
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  ogImage?: string | null;
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description = SITE_DESCRIPTION,
+  path,
+  jsonLd,
+  ogImage = null,
+  noindex = false,
+} = Astro.props;
+
+// 没有真实域名时绝不输出绝对 URL —— 宁缺 canonical，也不能让搜索引擎
+// 看到 https://cs2-shezhi.invalid 这种占位地址。
+const absoluteUrl = HAS_REAL_DOMAIN && path ? `${SITE_URL}${path}` : null;
+
+const ldBlocks = jsonLd
+  ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]).map((block) =>
+      // 把 @id / url 里的相对路径补成绝对路径，只在有真实域名时做
+      HAS_REAL_DOMAIN
+        ? JSON.stringify(block).replace(/"(@id|url)":"\//g, (_m, p1) => `"${p1}":"${SITE_URL}/`)
+        : JSON.stringify(block)
+    )
+  : [];
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<meta name="generator" content={Astro.generator} />
+
+{noindex || !HAS_REAL_DOMAIN ? <meta name="robots" content="noindex,nofollow" /> : <meta name="robots" content="index,follow,max-image-preview:large" />}
+
+{absoluteUrl && <link rel="canonical" href={absoluteUrl} />}
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content={SITE_NAME} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:locale" content="zh_CN" />
+{absoluteUrl && <meta property="og:url" content={absoluteUrl} />}
+{ogImage && <meta property="og:image" content={HAS_REAL_DOMAIN ? `${SITE_URL}${ogImage}` : ogImage} />}
+
+<meta name="twitter:card" content={ogImage ? "summary_large_image" : "summary"} />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+{ogImage && <meta name="twitter:image" content={HAS_REAL_DOMAIN ? `${SITE_URL}${ogImage}` : ogImage} />}
+
+{ldBlocks.map((json) => <script type="application/ld+json" set:html={json} />)}

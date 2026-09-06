@@ -1,0 +1,197 @@
+---
+import BaseLayout from "../../components/layout/BaseLayout.astro";
+import { getCollection, render } from "astro:content";
+import { pageTitle } from "../../config";
+import { formatDate } from "../../lib/format";
+import type { CollectionEntry } from "astro:content";
+
+/**
+ * Astro 7 的 Content Layer API：
+ * - entry.id 由 glob loader 从文件路径派生，直接当 slug 用
+ * - render(entry) 返回 { Content, headings }
+ * - 过滤草稿在 getCollection 的第二个参数里做，而不是取完再 filter
+ */
+export async function getStaticPaths() {
+  const guides = await getCollection("guides", ({ data }) => !data.draft);
+  return guides.map((guide) => ({ params: { slug: guide.id }, props: { guide } }));
+}
+
+interface Props {
+  guide: CollectionEntry<"guides">;
+}
+
+const { guide } = Astro.props;
+const { Content, headings } = await render(guide);
+
+// 用 h2 生成右侧目录；h3 太多会让目录失去导航价值
+const toc = headings.filter((h) => h.depth === 2);
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: guide.data.title,
+    description: guide.data.description,
+    datePublished: guide.data.pubDate.toISOString(),
+    ...(guide.data.updatedDate ? { dateModified: guide.data.updatedDate.toISOString() } : {}),
+    inLanguage: "zh-CN",
+    ...(guide.data.tags.length ? { keywords: guide.data.tags.join(", ") } : {}),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "首页", item: "/" },
+      { "@type": "ListItem", position: 2, name: "指南", item: "/guides" },
+      { "@type": "ListItem", position: 3, name: guide.data.title },
+    ],
+  },
+];
+---
+
+<BaseLayout
+  title={pageTitle(guide.data.title)}
+  description={guide.data.description}
+  path={`/guides/${guide.id}`}
+  jsonLd={jsonLd}
+  breadcrumbs={[
+    { label: "首页", href: "/" },
+    { label: "指南", href: "/guides" },
+    { label: guide.data.title },
+  ]}
+>
+  <div class="grid gap-8 lg:grid-cols-[1fr_16rem]">
+    <article class="min-w-0">
+      <header class="mb-6 border-b border-base-300 pb-4">
+        <h1 class="text-2xl font-extrabold leading-tight sm:text-3xl">{guide.data.title}</h1>
+        <p class="mt-2 flex flex-wrap items-center gap-2 text-xs text-base-content/60">
+          <time datetime={guide.data.pubDate.toISOString()}>
+            发布于 {formatDate(guide.data.pubDate.toISOString())}
+          </time>
+          {guide.data.updatedDate && (
+            <time datetime={guide.data.updatedDate.toISOString()}>
+              · 更新于 {formatDate(guide.data.updatedDate.toISOString())}
+            </time>
+          )}
+          {guide.data.tags.map((t) => <span class="badge badge-ghost badge-xs">{t}</span>)}
+        </p>
+      </header>
+
+      <!--
+        Markdown 渲染出的元素需要排版样式。这里用 Tailwind 的 arbitrary variant
+        直接选中 prose 容器内的元素，不引入 @tailwindcss/typography 插件 ——
+        少一个依赖，且只需要覆盖实际用到的几种标签。
+      -->
+      <div
+        class="prose-custom max-w-none text-[15px] leading-relaxed text-base-content/90"
+      >
+        <Content />
+      </div>
+    </article>
+
+    {toc.length > 0 && (
+      <aside class="hidden lg:block" aria-labelledby="toc">
+        <div class="sticky top-20">
+          <h2 id="toc" class="mb-2 text-xs font-semibold uppercase tracking-wide text-base-content/50">
+            本页目录
+          </h2>
+          <ol class="space-y-1.5 border-l border-base-300 pl-3 text-sm">
+            {toc.map((h) => (
+              <li>
+                <a href={`#${h.slug}`} class="link link-hover text-base-content/70">{h.text}</a>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </aside>
+    )}
+  </div>
+
+  <nav class="mt-10 flex flex-wrap gap-2 border-t border-base-300 pt-4 text-sm" aria-label="相关页面">
+    <a href="/guides" class="btn btn-ghost btn-sm">← 全部指南</a>
+    <a href="/players" class="btn btn-ghost btn-sm">选手设置</a>
+    <a href="/tools/recommender" class="btn btn-ghost btn-sm">推荐工具</a>
+  </nav>
+</BaseLayout>
+
+<style is:global>
+  /* Markdown 渲染结果的排版。只覆盖 guides 里实际用到的标签。 */
+  .prose-custom h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-top: 2.25rem;
+    margin-bottom: 0.75rem;
+    scroll-margin-top: 5rem;
+    color: var(--color-base-content);
+  }
+  .prose-custom h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+    scroll-margin-top: 5rem;
+    color: var(--color-base-content);
+  }
+  .prose-custom p { margin: 0.75rem 0; }
+  .prose-custom ul, .prose-custom ol { margin: 0.75rem 0; padding-left: 1.5rem; }
+  .prose-custom ul { list-style: disc; }
+  .prose-custom ol { list-style: decimal; }
+  .prose-custom li { margin: 0.3rem 0; }
+  .prose-custom a {
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .prose-custom a:hover { text-decoration-thickness: 2px; }
+  .prose-custom strong { color: var(--color-base-content); font-weight: 700; }
+  .prose-custom code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--color-base-300);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+  }
+  .prose-custom pre {
+    background: var(--color-base-300);
+    padding: 0.9rem 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+  }
+  .prose-custom pre code { background: none; padding: 0; font-size: inherit; }
+  .prose-custom blockquote {
+    border-left: 3px solid var(--color-primary);
+    background: color-mix(in oklab, var(--color-primary) 8%, transparent);
+    padding: 0.75rem 1rem;
+    margin: 1.25rem 0;
+    border-radius: 0 0.5rem 0.5rem 0;
+  }
+  .prose-custom blockquote p { margin: 0.25rem 0; }
+  .prose-custom hr {
+    border: 0;
+    border-top: 1px solid var(--color-base-300);
+    margin: 2rem 0;
+  }
+  /* 表格：Markdown 里的表格套上滚动容器，避免移动端撑破版面 */
+  .prose-custom table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.875rem;
+    display: block;
+    overflow-x: auto;
+  }
+  .prose-custom th, .prose-custom td {
+    border: 1px solid var(--color-base-300);
+    padding: 0.4rem 0.7rem;
+    text-align: left;
+  }
+  .prose-custom th {
+    background: var(--color-base-200);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .prose-custom td code { white-space: nowrap; }
+</style>

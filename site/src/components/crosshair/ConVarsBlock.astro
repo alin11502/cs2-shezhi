@@ -1,0 +1,46 @@
+---
+/**
+ * CFG 文本块（daisyUI collapse 折叠 + 一键复制）。
+ *
+ * 输出的是**完整 21 行** convar，包含 4 行 cl_crosshair_dynamic_*。
+ * 早期版本会剔除那 4 行，理由是"准星码不携带它们、是伪配置"——该理由已证伪，
+ * 剔除等于让用户下载的配置与选手实际设置不符。
+ *
+ * 复制靠 BaseLayout 里的全局事件委托（[data-copy]），本页不需要额外脚本。
+ */
+import { paramsToConVars } from "../../lib/crosshair/convars.ts";
+
+interface Props {
+  params: Record<string, number | boolean>;
+  playerName?: string;
+  /** 默认折叠，避免长 CFG 把参数表挤到屏幕外 */
+  open?: boolean;
+  class?: string;
+}
+
+const { params, playerName, open = false, class: className = "" } = Astro.props;
+
+const cfg = paramsToConVars(params, { withHeader: true, playerName });
+const lineCount = cfg.split("\n").filter((l) => l.trim().startsWith("cl_")).length;
+---
+
+<div class={`collapse collapse-arrow rounded-box border border-base-300 bg-base-100 ${className}`}>
+  <input type="checkbox" checked={open || undefined} aria-label="展开或收起 CFG 配置文本" />
+  <div class="collapse-title flex flex-wrap items-center gap-2 py-3 text-sm font-medium">
+    <span>下载 CFG（{lineCount} 行 convar）</span>
+    <span class="badge badge-ghost badge-sm">可直接放进 autoexec.cfg</span>
+  </div>
+  <div class="collapse-content">
+    <div class="mb-2 flex justify-end">
+      <button type="button" class="btn btn-ghost btn-xs" data-copy={cfg} data-copy-label="复制 CFG">
+        复制
+      </button>
+    </div>
+    <pre class="rounded-box bg-base-300 p-3 text-xs leading-relaxed"><code class="font-mono">{cfg}</code></pre>
+    <p class="mt-2 text-xs text-base-content/60">
+      用法：把内容存成 <code class="font-mono">autoexec.cfg</code>，放到
+      <code class="font-mono">Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\cfg\</code>，
+      然后在启动项加 <code class="font-mono">+exec autoexec.cfg</code>。
+    </p>
+  </div>
+</div>

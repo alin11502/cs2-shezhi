@@ -1,0 +1,98 @@
+---
+/**
+ * 21 项准星参数表。
+ *
+ * 用 fields.ts 的 PARAM_META 驱动，所以参数增减只改一处、表自动跟随。
+ *
+ * 4 项 dynamicOnly 参数（动态准星的分裂行为）在 style !== 4 时会标注
+ * "当前样式下不影响外观"，但**绝不隐藏** —— 它们是选手的真实设置，
+ * 也确实编码在码里，隐藏就等于丢数据。这一点曾经搞反过：早期版本基于
+ * "它们不在码里、是引擎默认值"的错误判断把它们完全排除在展示之外。
+ */
+import {
+  BOOL_PARAMS,
+  COLOR_LABELS,
+  DYNAMIC_ONLY_PARAMS,
+  PARAM_KEYS,
+  PARAM_META,
+  STYLE_LABELS,
+} from "../../lib/crosshair/fields.ts";
+import { resolveRgb, rgbToCss } from "../../lib/crosshair/color.ts";
+import { boolLabel, numLabel } from "../../lib/format.ts";
+
+interface Props {
+  params: Record<string, number | boolean>;
+  /** 表格标题，默认"准星参数" */
+  caption?: string;
+  class?: string;
+}
+
+const { params, caption = "准星参数", class: className = "" } = Astro.props;
+
+const isDynamic = Number(params.style) === 4;
+const dynamicSet = new Set<string>(DYNAMIC_ONLY_PARAMS);
+
+/** 值的中文呈现：布尔→开/关，style/color→带名称，颜色索引额外给色块 */
+function display(key: string, value: number | boolean | null | undefined): string {
+  if (value === null || value === undefined) return "—";
+  if (BOOL_PARAMS.has(key)) return boolLabel(value) ?? "—";
+  if (key === "style") return `${value}（${STYLE_LABELS[Number(value)] ?? "未知"}）`;
+  if (key === "color") return `${value}（${COLOR_LABELS[Number(value)] ?? "未知"}）`;
+  return numLabel(value) ?? "—";
+}
+
+// 自定义色时给一个色块，比看三个数字直观
+const swatch = Number(params.color) === 6 ? rgbToCss(resolveRgb(params)) : null;
+---
+
+<div class={`overflow-hidden ${className}`}>
+  <div class="table-scroll">
+    <table class="table table-zebra table-sm">
+      <caption class="sr-only">{caption}，共 {PARAM_KEYS.length} 项</caption>
+      <thead>
+        <tr>
+          <th scope="col">参数</th>
+          <th scope="col">convar</th>
+          <th scope="col" class="text-right">值</th>
+        </tr>
+      </thead>
+      <tbody>
+        {PARAM_KEYS.map((key) => {
+          const meta = PARAM_META[key];
+          const value = params[key] as number | boolean | undefined;
+          const dynamicOnly = dynamicSet.has(key);
+          return (
+            <tr class={dynamicOnly && !isDynamic ? "text-base-content/60" : ""}>
+              <th scope="row" class="font-normal">
+                <span class="flex flex-wrap items-center gap-1.5">
+                  {meta?.label ?? key}
+                  {dynamicOnly && (
+                    <span class="badge badge-outline badge-xs" title="仅在动态准星（style=4）下影响外观">
+                      {isDynamic ? "动态" : "动态·当前不生效"}
+                    </span>
+                  )}
+                  {key === "color" && swatch && (
+                    <span
+                      class="inline-block h-3.5 w-3.5 rounded-sm border border-base-content/30"
+                      style={`background:${swatch}`}
+                      aria-label={`自定义颜色 ${swatch}`}
+                    />
+                  )}
+                </span>
+              </th>
+              <td><code class="font-mono text-xs text-base-content/70">{meta?.convar ?? "—"}</code></td>
+              <td class="text-right font-mono text-sm tabular-nums">{display(key, value)}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+
+  {!isDynamic && (
+    <p class="mt-2 text-xs text-base-content/60">
+      标有「动态·当前不生效」的 4 项是动态准星（<code class="font-mono">cl_crosshairstyle 4</code>）的分裂行为参数。
+      当前样式为 {display("style", params.style)}，它们不影响外观，但确实是该准星码携带的真实设置，所以原样列出。
+    </p>
+  )}
+</div>

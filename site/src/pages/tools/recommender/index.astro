@@ -1,0 +1,109 @@
+---
+import BaseLayout from "../../../components/layout/BaseLayout.astro";
+import { pageTitle } from "../../../config";
+import { counts, hasEnoughSample, settings, MIN_SAMPLE_FOR_STATS } from "../../../lib/data";
+import { edpi } from "../../../lib/format";
+
+// 本轮只做占位：真实的问卷 + 规则引擎 + PSA 二分逼近在 P5 实现。
+// 但页面不能是空的"敬请期待"——先把已有的职业 eDPI 分布拿出来，
+// 这是推荐器将来要依赖的同一份统计，现在就有参考价值。
+const edpis = settings
+  .map((s) => edpi(s.sensitivity, s.dpi) ?? s.edpi)
+  .filter((v): v is number => typeof v === "number" && v > 0)
+  .sort((a, b) => a - b);
+
+const enough = hasEnoughSample(edpis.length);
+const pct = (p: number) => (edpis.length ? edpis[Math.min(edpis.length - 1, Math.floor(edpis.length * p))] : null);
+const stats = enough
+  ? { min: edpis[0], p25: pct(0.25), median: pct(0.5), p75: pct(0.75), max: edpis[edpis.length - 1] }
+  : null;
+
+const title = pageTitle("CS2 准星与灵敏度推荐工具");
+const description = "回答几个关于打法、屏幕与握姿的问题，得到适配你的准星参数与灵敏度区间，并用 PSA 二分法逐步精调。工具开发中，当前先提供职业选手 eDPI 分布作参考。";
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path="/tools/recommender"
+  jsonLd={{
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: "CS2 准星与灵敏度推荐工具",
+    applicationCategory: "UtilitiesApplication",
+    inLanguage: "zh-CN",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "CNY" },
+  }}
+  breadcrumbs={[{ label: "首页", href: "/" }, { label: "推荐器" }]}
+>
+  <header class="mb-6">
+    <h1 class="text-2xl font-extrabold sm:text-3xl">找到适合你的准星与灵敏度</h1>
+    <p class="mt-2 max-w-3xl text-sm text-base-content/70">
+      这个工具会问你几个问题（打法风格、屏幕分辨率与尺寸、手臂流还是手腕流、是否常用狙击），
+      给出适配你的准星参数与灵敏度区间，并列出与本站收录选手中最接近的几位作为参考；
+      之后可以用 PSA（Perfect Sensitivity Approximation）二分法逐步精调到你的个人最佳灵敏度。
+    </p>
+  </header>
+
+  <div class="alert alert-info mb-8">
+    <div>
+      <h2 class="font-bold">交互功能开发中</h2>
+      <p class="text-sm">
+        问卷、规则引擎与 PSA 精调向导正在实现。下面先给出推荐器将来要依赖的同一份统计 ——
+        本站收录选手的 eDPI 分布，它现在就能帮你判断自己的灵敏度落在什么区间。
+      </p>
+    </div>
+  </div>
+
+  <section class="mb-8" aria-labelledby="edpi">
+    <h2 id="edpi" class="mb-3 text-lg font-bold">职业选手 eDPI 分布</h2>
+
+    {enough && stats ? (
+      <>
+        <p class="mb-4 text-sm text-base-content/70">
+          eDPI = 鼠标 DPI × 游戏内灵敏度，是跨设备比较灵敏度的唯一可比口径。
+          下面基于本站收录的 <strong class="text-base-content">{edpis.length}</strong> 名选手。
+        </p>
+        <div class="stats stats-vertical w-full shadow sm:stats-horizontal">
+          <div class="stat">
+            <div class="stat-title">最低</div>
+            <div class="stat-value text-primary text-2xl">{stats.min}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-title">25 分位</div>
+            <div class="stat-value text-primary text-2xl">{stats.p25}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-title">中位数</div>
+            <div class="stat-value text-primary text-2xl">{stats.median}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-title">75 分位</div>
+            <div class="stat-value text-primary text-2xl">{stats.p75}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-title">最高</div>
+            <div class="stat-value text-primary text-2xl">{stats.max}</div>
+          </div>
+        </div>
+        <p class="mt-3 text-xs text-base-content/60">
+          社区普遍认可的职业区间约在 800–1600，中位数约 1100。本站样本为
+          {edpis.length} 人，仅作方向参考 —— 灵敏度高度个人化，最终要靠实际手感确定。
+          另需注意 CS2 与 CS:GO 的灵敏度是 1:1 一致的，不存在换算系数。
+        </p>
+      </>
+    ) : (
+      <p class="rounded-box border border-base-300 bg-base-100 p-4 text-sm text-base-content/60">
+        数据库建设中：当前收录 {edpis.length} 名有灵敏度数据的选手，
+        少于 {MIN_SAMPLE_FOR_STATS} 人的样本量不足以给出有意义的分布，所以不展示统计图。
+      </p>
+    )}
+  </section>
+
+  <nav class="flex flex-wrap gap-2 border-t border-base-300 pt-4 text-sm" aria-label="相关页面">
+    <a href="/best/sensitivity" class="btn btn-ghost btn-sm">灵敏度统计详情</a>
+    <a href="/best/crosshairs" class="btn btn-ghost btn-sm">选手准星统计</a>
+    <a href="/players" class="btn btn-ghost btn-sm">浏览全部选手</a>
+    <a href="/crosshair" class="btn btn-ghost btn-sm">准星码库</a>
+  </nav>
+</BaseLayout>

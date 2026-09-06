@@ -1,0 +1,122 @@
+---
+import "../../styles/global.css";
+import Seo from "./Seo.astro";
+import Header from "./Header.astro";
+import Footer from "./Footer.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+  path?: string;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  ogImage?: string | null;
+  noindex?: boolean;
+  /** 面包屑，除首页外的页面都应提供 */
+  breadcrumbs?: { label: string; href?: string }[];
+}
+
+const { title, description, path, jsonLd, ogImage, noindex, breadcrumbs } = Astro.props;
+---
+
+<!doctype html>
+<!-- data-theme 硬写在 html 上：daisyUI 是纯 CSS，禁用 JS 时暗色主题依然正确 -->
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <Seo
+      title={title}
+      description={description}
+      path={path}
+      jsonLd={jsonLd}
+      ogImage={ogImage}
+      noindex={noindex}
+    />
+  </head>
+  <body class="min-h-screen bg-base-200 font-sans antialiased">
+    <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-3 focus:bg-base-100">
+      跳到主要内容
+    </a>
+    <Header />
+    <main id="main" class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <nav aria-label="面包屑" class="mb-4 text-sm">
+          <ol class="flex flex-wrap items-center gap-1 text-base-content/60">
+            {breadcrumbs.map((crumb, i) => (
+              <li class="flex items-center gap-1">
+                {i > 0 && <span aria-hidden="true">/</span>}
+                {crumb.href
+                  ? <a href={crumb.href} class="link link-hover hover:text-base-content">{crumb.label}</a>
+                  : <span class="text-base-content font-medium" aria-current="page">{crumb.label}</span>}
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )}
+      <slot />
+    </main>
+    <Footer />
+
+    <!--
+      复制按钮的全局事件委托。用委托而非逐个绑定，全站只需这一份约 25 行的内联脚本，
+      对后续动态插入的按钮同样生效。这是页面唯一的可执行 JS，且不影响任何内容可见性
+      —— 准星 SVG、参数表、CFG 文本全部是构建时内联的，禁用 JS 照常呈现。
+    -->
+    <script is:inline>
+      document.addEventListener("click", async (event) => {
+        const btn = event.target.closest("[data-copy]");
+        if (!btn) return;
+
+        const text = btn.getAttribute("data-copy") || "";
+        const flash = (msg, ok) => {
+          const prev = btn.textContent;
+          btn.textContent = msg;
+          btn.classList.toggle("text-success", ok);
+          btn.classList.toggle("text-error", !ok);
+          setTimeout(() => {
+            btn.textContent = prev;
+            btn.classList.remove("text-success", "text-error");
+          }, 1600);
+        };
+
+        // 依次尝试两种方式，都失败才提示手动选择。
+        // 早先的版本是"有 clipboard API 且是安全上下文就只用它"，但 clipboard API
+        // 存在却写入被拒的情况并不少见（缺少用户激活、权限被拒、被 iframe 嵌入），
+        // 那时直接报错太早 —— execCommand 在这些场景下往往仍然可用。
+        const viaExecCommand = () => {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.setAttribute("readonly", "");
+          ta.style.cssText = "position:fixed;top:-1000px;opacity:0";
+          document.body.appendChild(ta);
+          ta.select();
+          let ok = false;
+          try {
+            ok = document.execCommand("copy");
+          } catch (_) {
+            ok = false;
+          }
+          document.body.removeChild(ta);
+          return ok;
+        };
+
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            flash("已复制", true);
+          } else if (viaExecCommand()) {
+            flash("已复制", true);
+          } else {
+            flash("复制失败，请手动选择", false);
+          }
+        } catch (err) {
+          // clipboard API 被拒后，再试一次 execCommand 才放弃
+          if (viaExecCommand()) flash("已复制", true);
+          else flash("复制失败，请手动选择", false);
+        }
+      });
+    </script>
+  </body>
+</html>

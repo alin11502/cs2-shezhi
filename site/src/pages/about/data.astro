@@ -1,0 +1,251 @@
+---
+import BaseLayout from "../../components/layout/BaseLayout.astro";
+import { pageTitle, SITE_NAME } from "../../config";
+import { counts, meta } from "../../lib/data";
+import { formatDate } from "../../lib/format";
+
+const title = pageTitle("数据来源与准确性声明");
+const description = `${SITE_NAME} 的三类数据来源、置信度分级、更新政策，以及为什么当前站内数据是清楚标注的虚构样本 —— 含第三方数据源互相矛盾的实测证据。`;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path="/about/data"
+  jsonLd={{ "@context": "https://schema.org", "@type": "AboutPage", name: title }}
+  breadcrumbs={[
+    { label: "首页", href: "/" },
+    { label: "关于", href: "/about" },
+    { label: "数据来源" },
+  ]}
+>
+  <h1 class="mb-6 text-2xl font-extrabold sm:text-3xl">数据来源与准确性声明</h1>
+
+  <div class="alert alert-warning mb-8">
+    <div>
+      <h2 class="font-bold">当前站内数据是虚构样本，不对应任何真实选手</h2>
+      <p class="text-sm">
+        现在库里的 {counts.playersWithCrosshair} 名选手（「样本选手 A」到「样本选手 J」）
+        与 {counts.teams} 支战队全部是虚构的，批次标记为
+        <code class="font-mono">seed-sample-2026-09</code>，
+        每条记录的来源标注为「人工录入 / 置信度低」。
+        <strong>它们的准星码是合法可导入游戏的真实 CS2 码</strong>（由参数现场编码生成，
+        并经过 encode→decode 回读校验），所以站点的解码、渲染、CFG 导出走的是真实代码路径；
+        但码背后的「选手」并不存在。
+      </p>
+      <p class="mt-2 text-sm">
+        之所以这样做，是因为下面第 3 节说明的数据源矛盾问题 ——
+        在能拿到可核实的真实数据之前，我们宁可明确标注为样本，
+        也不把互相矛盾的第三方数值挂到真实选手名下。
+      </p>
+    </div>
+  </div>
+
+  <div class="prose-custom max-w-3xl space-y-4 text-[15px] leading-relaxed text-base-content/90">
+    <h2>1. 三类数据来源</h2>
+    <p>每条设置数据都带来源标记，前台在每个数据块旁显示。三类的可信度差别很大：</p>
+    <ul>
+      <li>
+        <strong>比赛 demo 自动提取（置信度：高）</strong>。
+        从比赛录像（<code>.dem</code>）里读取网络属性
+        <code>m_szCrosshairCodes</code> 得到准星码。这是最可靠的一手来源 ——
+        它就是选手在那场比赛里实际用的值，不经过任何人工转录。
+        <strong>局限</strong>：demo 里只有准星码，<strong>没有</strong>灵敏度、DPI、
+        分辨率、视频设置、外设这些信息（维护者原话：「hud、sensitivity、resolution
+        这些东西回放 demo 根本用不到」）。持枪视角（viewmodel）是少数例外。
+      </li>
+      <li>
+        <strong>选手本人公开（置信度：高）</strong>。
+        选手在直播、社交媒体或战队官方渠道发布的准星码与设置。
+        可靠，但需要人工确认发布渠道确实是本人，且要注意时效。
+      </li>
+      <li>
+        <strong>第三方站点核对（置信度：中到低）</strong>。
+        从 prosettings.net 这类聚合站获取，人工核对后录入。
+        这是覆盖面的主要来源，但也是矛盾最多的地方（见第 3 节）。
+      </li>
+    </ul>
+    <p>
+      人工录入的数据还会记录<strong>核对时间</strong>，因为设置会变。
+      看到一条半年前核对的数据时，你应该知道它可能已经过时。
+    </p>
+
+    <h2>2. 拿不准的就不写</h2>
+    <p>
+      本站不使用「合理推测」填充空缺。找不到可核实来源的字段就留空，
+      前台显示 <code>—</code>。表格保留空行而不隐藏，
+      这样不同选手之间仍然可以逐行对比 —— 隐藏缺失项会让表格看起来完整，
+      但那是在制造「我们有这个数据」的错觉。
+    </p>
+    <p>
+      统计页同理：样本量少于 8 人时整块隐藏统计图并直接说明样本量，
+      因为用三五个人的数据画「职业选手分布」是自欺欺人。
+    </p>
+
+    <h2>3. 为什么不用 HLTV，以及第三方数据源的实测矛盾</h2>
+    <p>
+      HLTV 是 CS 圈最权威的赛事数据源，但本站<strong>不把它作为任何自动化数据的来源</strong>，
+      原因有三层，都是实测确认的：
+    </p>
+    <ul>
+      <li>
+        <strong>它根本没有这些数据。</strong>HLTV 选手页的字段只有：id、姓名、照片、年龄、
+        国籍、战队、社媒链接、rating / KPR / HS% / DPR、战队履历、成就、新闻。
+        <strong>没有准星码，没有灵敏度、DPI、分辨率、视频设置，没有持枪视角，
+        没有外设，没有饰品库存。</strong>想从 HLTV 拿设置数据，是拿不到的。
+      </li>
+      <li>
+        <strong>技术上抓不到。</strong>实测：带浏览器 UA 直连首页返回 200，
+        但选手页返回 403，<code>robots.txt</code> 被 Cloudflare 的 JS 挑战挡住。
+        社区库自己的说明就写着「滥用大概率被 HLTV 封 IP，因为有 Cloudflare bot 防护」，
+        最主流的封装库已标注停止维护。其 <code>robots.txt</code> 也明确
+        <code>Disallow: /download/demo*</code>，所以 demo 自动下载同样不行。
+      </li>
+      <li>
+        <strong>条款明确禁止，而且禁止的正好是本站。</strong>HLTV 的服务条款明文禁止
+        「data mining or web scraping」、「commercially exploit the Website or any of
+        its content」，以及「construct and build a similar or competitive website」——
+        第三条说的就是「做一个 CS2 选手设置内容站」。
+      </li>
+    </ul>
+    <p>HLTV 只作为人工查阅赛事信息的参考，不进任何自动化管道。</p>
+
+    <p>
+      那么有设置数据的第三方站点可靠吗？我们实测了一个具体案例，结论是<strong>不能直接采信</strong>。
+      以 s1mple 的准星码为例：
+    </p>
+    <ul>
+      <li>totalcsgo.com 给出 <code>CSGO-UseJt-3oTvn-47wPX-hEyER-WZfiK</code></li>
+      <li>csdb.gg 给出 <code>CSGO-iCxok-KTVNX-shCzf-Evoek-weaAB</code></li>
+    </ul>
+    <p>把两个码解开对比：</p>
+    <ul>
+      <li>间隙：−4.5 vs −4</li>
+      <li>颜色：索引 4（青）vs 索引 2（黄）</li>
+      <li>透明度：未启用 vs 255</li>
+    </ul>
+    <p>
+      三处实质差异，两边都声称这是同一个人的当前准星。更值得注意的是，
+      csdb.gg 那个码可以追溯到 prosettings.net <strong>评论区</strong>里一条 5 个月前的匿名提交
+      （用户名 d1mple，附了一个 FACEIT 房间链接，正文写「new crosshair from latest faceit match」）。
+      而 prosettings 自己的正文并不以准星码形式给出准星，
+      它给的是 convar 名值对，且值是人类可读文本（如「Classic Static」），
+      要转成数值还得依赖一张「显示文本 → 数值」的映射表 —— 映射错一位，
+      就是把错误数据挂到真人身上。
+    </p>
+    <p>
+      这就是当前使用虚构样本的直接原因。将来接入真实数据时，本站的取数优先级是：
+      <strong>比赛 demo 自动提取 &gt; 选手本人发布 &gt; 第三方站点人工核对</strong>，
+      并且每条都必须附可点击的证据链接。第三方之间矛盾时，
+      要么并列展示两个值并标注各自来源，要么就不收录 —— 不选一个「看起来更可信」的假装确定。
+    </p>
+
+    <h2>4. 关于准星参数数量的一次公开更正</h2>
+    <p>
+      本站在建设初期曾认定「准星码只携带 17 项参数，
+      <code>split_distance</code> / <code>inner_split_alpha</code> /
+      <code>outer_split_alpha</code> / <code>split_size_ratio</code>
+      这四项不在码里、解码器对任何码都返回引擎默认值 2 / 0.8 / 0.4 / 1.5」，
+      并据此把这四项排除在数据库与展示之外。
+    </p>
+    <p><strong>这个判断是错的。</strong>解码器源码显示这四项分别从具体字节位读取：</p>
+    <ul>
+      <li><code>splitDistance = bytes[8] &amp; 7</code>（3 位，域 0–7）</li>
+      <li><code>innerSplitAlpha = (bytes[10] &gt;&gt; 4) / 10</code>（4 位，域 0–1.5，步进 0.1）</li>
+      <li><code>outerSplitAlpha = (bytes[11] &amp; 0xf) / 10</code>（同上）</li>
+      <li><code>splitSizeRatio = (bytes[11] &gt;&gt; 4) / 10</code>（同上）</li>
+    </ul>
+    <p>
+      上面提到的真实码 <code>CSGO-UseJt-…</code> 解出来是 <strong>3 / 0.1 / 1 / 1</strong>，
+      不是默认值；用完整的 21 项原样重新编码，可以<strong>字节级还原</strong>出同一个码。
+      当初误判的原因是只测试了自己生成的、恰好都用默认值的码，样本没有区分度。
+    </p>
+    <p>
+      这四项是<strong>动态准星（样式 4）的分裂行为参数</strong>：静态样式下不影响外观，
+      但它们确实是选手的设置，也确实编码在码里。现在本站按 21 项完整存储、
+      完整展示、完整写进 CFG，在非动态样式下会标注「当前样式下不影响外观」而不是隐藏。
+    </p>
+    <p>
+      我们把这次更正写在公开页面上，是因为它正好说明了本站为什么对数据来源这么固执：
+      一个看起来很合理、还「实测」过的结论，因为样本选得不对而整个反了。
+      准星设置这种数据，错误的传播成本远高于核实的成本。
+    </p>
+
+    <h2>5. 渲染与视觉上的已知不确定性</h2>
+    <p>有两处我们明确标注为未经游戏内验证：</p>
+    <ul>
+      <li>
+        <strong>颜色预设值</strong>。预设色（索引 0–5）的具体 RGB 取自一个可运行的开源渲染器
+        （值为 250/50 系而非 255/0 系），不是从游戏本体提取的。
+        另外已确认：码里的颜色索引与 RGB 是<strong>两个独立字段</strong>，
+        选预设色时游戏不会改写 RGB，所以码里常残留与预设不符的 RGB 值。
+        渲染时一律以索引为准，只有索引 6（自定义）才读 RGB。
+      </li>
+      <li>
+        <strong>间隙的组合语义</strong>。<code>cl_fixedcrosshairgap</code> 与
+        <code>cl_crosshairgap_useweaponvalue</code> 如何共同决定实际间隙，
+        以及样式 3（内缩）是否有额外的几何收紧，是按 convar 语义推导的，
+        未经实机截图校准。动态准星的扩张预览同理，页面上一律标注为「示意动画，非引擎精确模拟」。
+      </li>
+    </ul>
+
+    <h2>6. 第三方内容的署名</h2>
+    <p>
+      选手姓名、国籍、战队归属等人物元数据若取自
+      <a href="https://liquipedia.net/counterstrike/" rel="noopener noreferrer nofollow" target="_blank">Liquipedia</a>，
+      其内容以
+      <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener noreferrer nofollow" target="_blank">CC-BY-SA 4.0</a>
+      授权。Liquipedia 提供官方 MediaWiki API 与明确的使用条款，本站通过该 API 获取数据并在此署名。
+    </p>
+    <p>
+      外设型号等第三方站点数据，会在对应记录的证据链接里指向具体来源页面。
+    </p>
+
+    <h2>7. 发现错误怎么办</h2>
+    <p>
+      如果你发现某条数据有误、过时，或者有可核实的来源可以补充，
+      请通过仓库的 issue 提交，并尽量附上证据链接（选手本人的发布、比赛 demo、战队官方页面等）。
+      我们会更正数据，并在该条记录上更新核对时间。
+      涉及「哪个值才对」的争议，我们倾向于并列展示双方来源而不是选一个。
+    </p>
+
+    {meta.fetched_at && (
+      <p class="text-xs text-base-content/60">
+        本页所述数据统计于 {formatDate(meta.fetched_at)}
+        {meta.stale ? "（来自本地缓存，PocketBase 当时不可达）" : ""}。
+      </p>
+    )}
+  </div>
+
+  <nav class="mt-10 flex flex-wrap gap-2 border-t border-base-300 pt-4 text-sm" aria-label="相关页面">
+    <a href="/about" class="btn btn-ghost btn-sm">← 关于本站</a>
+    <a href="/guides/crosshair-code-explained" class="btn btn-ghost btn-sm">准星码详解</a>
+    <a href="/players" class="btn btn-ghost btn-sm">全部选手</a>
+  </nav>
+</BaseLayout>
+
+<style is:global>
+  .prose-custom h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+    color: var(--color-base-content);
+  }
+  .prose-custom ul { list-style: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
+  .prose-custom li { margin: 0.35rem 0; }
+  .prose-custom strong { color: var(--color-base-content); font-weight: 700; }
+  .prose-custom code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--color-base-300);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    word-break: break-all;
+  }
+  .prose-custom a {
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+</style>

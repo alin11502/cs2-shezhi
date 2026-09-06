@@ -1,0 +1,109 @@
+---
+/**
+ * 选手列表的客户端筛选器。
+ *
+ * 内联 vanilla script，不引框架：整份列表在构建时已经全部渲染进 HTML，
+ * 脚本只做 hide/show。所以**禁用 JS 时全部选手照常可见**（只是不能筛选），
+ * 这对 SEO 也是必要的 —— 列表内容必须能被爬虫看到。
+ *
+ * 选手数破 300 之后再考虑构建端分页，那时才需要真的改数据结构。
+ */
+import { roleName } from "../../lib/format.ts";
+
+interface Props {
+  /** 用于填充"角色"下拉的候选值 */
+  roles: string[];
+  total: number;
+}
+
+const { roles, total } = Astro.props;
+---
+
+<div
+  id="player-filter"
+  class="mb-5 flex flex-wrap items-end gap-3 rounded-box border border-base-300 bg-base-100 p-4"
+>
+  <label class="form-control min-w-[12rem] flex-1">
+    <span class="label-text mb-1 text-xs text-base-content/70">搜索选手名</span>
+    <input
+      type="search"
+      id="pf-q"
+      class="input input-bordered input-sm w-full"
+      placeholder="例如 sample"
+      autocomplete="off"
+    />
+  </label>
+
+  <label class="form-control">
+    <span class="label-text mb-1 text-xs text-base-content/70">位置</span>
+    <select id="pf-role" class="select select-bordered select-sm">
+      <option value="">全部</option>
+      {roles.map((r) => <option value={r}>{roleName(r) ?? r}</option>)}
+    </select>
+  </label>
+
+  <p class="text-sm text-base-content/70" id="pf-count" aria-live="polite">
+    共 <span data-count>{total}</span> 名选手
+  </p>
+
+  <noscript>
+    <p class="text-xs text-base-content/60">
+      当前浏览器未启用 JavaScript，筛选不可用，但下方已列出全部 {total} 名选手。
+    </p>
+  </noscript>
+</div>
+
+<script is:inline>
+  (() => {
+    // ⚠ 这个脚本在文档里的位置**早于**选手卡片（PlayerFilter 组件先渲染、
+    // 卡片网格后渲染），而内联脚本是解析到就立即执行的。所以必须等 DOM 就绪，
+    // 否则 querySelectorAll 拿到空集合：计数被写成 0，监听器绑在空数组上，
+    // 整个筛选器静默失效（实测踩过，浏览器里筛选完全没反应）。
+    const init = () => {
+      const q = document.getElementById("pf-q");
+      const role = document.getElementById("pf-role");
+      const countEl = document.querySelector("#player-filter [data-count]");
+      if (!q || !role || !countEl) return;
+
+      // 页面可选放一个 #pf-empty 作为"无匹配结果"提示；不存在时跳过
+      const emptyEl = document.getElementById("pf-empty");
+
+      const apply = () => {
+        // 每次重新查询、不缓存：对 DOM 顺序不敏感，也兼容后续动态插入的卡片
+        const cards = Array.from(document.querySelectorAll("[data-player-name]"));
+        const needle = q.value.trim().toLowerCase();
+        const wantRole = role.value;
+        let shown = 0;
+
+        for (const card of cards) {
+          const name = card.getAttribute("data-player-name") || "";
+          const slug = card.getAttribute("data-player-slug") || "";
+          const cardRole = card.getAttribute("data-role") || "";
+          const team = card.getAttribute("data-team") || "";
+
+          const matchText =
+            !needle || name.includes(needle) || slug.includes(needle) || team.includes(needle);
+          const matchRole = !wantRole || cardRole === wantRole;
+          const visible = matchText && matchRole;
+
+          // 用 hidden 属性而不是 display:none，语义更明确且对辅助技术一致
+          card.hidden = !visible;
+          if (visible) shown++;
+        }
+
+        countEl.textContent = String(shown);
+        if (emptyEl) emptyEl.hidden = shown > 0;
+      };
+
+      q.addEventListener("input", apply);
+      role.addEventListener("change", apply);
+      apply(); // 初始化计数，与 Astro 渲染的 total 对齐
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
+    }
+  })();
+</script>

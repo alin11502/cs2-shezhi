@@ -1,0 +1,30 @@
+---
+import { FOOTER_LINKS, SITE_NAME } from "../../config";
+
+const year = new Date().getFullYear();
+---
+
+<footer class="mt-12 border-t border-base-300 bg-base-100">
+  <div class="mx-auto w-full max-w-6xl space-y-4 px-4 py-8 text-sm text-base-content/60 sm:px-6 lg:px-8">
+    <nav aria-label="页脚导航" class="flex flex-wrap gap-x-5 gap-y-2">
+      {FOOTER_LINKS.map((link) => (
+        <a href={link.href} class="link link-hover">{link.label}</a>
+      ))}
+    </nav>
+
+    <!-- 数据准确性声明必须常驻页脚：本站的设置数据大量来自第三方与人工核对，
+         不能让用户误以为全部是自动提取的权威数据 -->
+    <p class="max-w-3xl leading-relaxed">
+      {SITE_NAME} 的数据分三种来源并逐条标注：比赛 demo 自动提取（准星码，高置信）、
+      选手本人公开发布、以及第三方站点人工核对。准星码携带全部 21 项参数，其中
+      <code class="font-mono text-xs">split_distance</code> 等 4 项是动态准星（style=4）的
+      分裂行为参数 —— 静态样式下不影响外观，但都是选手的真实设置，本站原样保留。详见
+      <a href="/about/data" class="link link-hover">数据来源与准确性声明</a>。
+    </p>
+
+    <p>
+      本站与 Valve Corporation 无关联。Counter-Strike 2 及其相关内容为 Valve 的商标。
+      选手与战队信息版权归各自权利人所有。 &copy; {year}
+    </p>
+  </div>
+</footer>

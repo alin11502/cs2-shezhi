@@ -1,0 +1,152 @@
+---
+import BaseLayout from "../../../components/layout/BaseLayout.astro";
+import PlayerCard from "../../../components/player/PlayerCard.astro";
+import DataTable from "../../../components/ui/DataTable.astro";
+import { pageTitle } from "../../../config";
+import {
+  getCurrentCrosshair,
+  getSettings,
+  getTenures,
+  listAllPlayers,
+  teams,
+} from "../../../lib/data";
+import { cm360, edpi, numLabel, regionName, roleName } from "../../../lib/format";
+import type { Team } from "../../../lib/types";
+
+export function getStaticPaths() {
+  return teams.map((team) => ({ params: { slug: team.slug }, props: { team } }));
+}
+
+interface Props {
+  team: Team;
+}
+
+const { team } = Astro.props;
+
+const allPlayers = listAllPlayers();
+const roster = allPlayers.filter((p) => p.team?.id === team.id);
+// 曾效力过的选手：转会史里有这支队、但不在现役阵容里
+const currentIds = new Set(roster.map((p) => p.id));
+const alumni = allPlayers.filter(
+  (p) => !currentIds.has(p.id) && getTenures(p.id).some((t) => t.team_id === team.id)
+);
+
+const title = pageTitle(`${team.name} 选手准星与设置${team.tag ? `（${team.tag}）` : ""}`);
+const description = `${team.name}${team.tag ? `（${team.tag}）` : ""} 的 CS2 选手名单与各自的准星码、灵敏度、eDPI 与外设设置，共 ${roster.length} 名现役选手。`;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path={`/teams/${team.slug}`}
+  jsonLd={[
+    {
+      "@context": "https://schema.org",
+      "@type": "SportsTeam",
+      name: team.name,
+      ...(team.tag ? { alternateName: team.tag } : {}),
+      ...(team.region ? { areaServed: regionName(team.region) } : {}),
+      numberOfPlayers: roster.length,
+      member: roster.map((p) => ({ "@type": "Person", name: p.name })),
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "首页", item: "/" },
+        { "@type": "ListItem", position: 2, name: "战队", item: "/teams" },
+        { "@type": "ListItem", position: 3, name: team.name },
+      ],
+    },
+  ]}
+  breadcrumbs={[
+    { label: "首页", href: "/" },
+    { label: "战队", href: "/teams" },
+    { label: team.name },
+  ]}
+>
+  <header class="mb-6 flex flex-wrap items-center gap-4">
+    {team.logo_url ? (
+      <img src={team.logo_url} alt={`${team.name} 队标`} width="64" height="64" class="h-16 w-16 object-contain" />
+    ) : (
+      <span
+        aria-hidden="true"
+        class="bg-primary/15 text-primary flex h-16 w-16 items-center justify-center rounded-box font-mono text-lg font-bold"
+      >
+        {team.tag ?? team.name.slice(0, 2).toUpperCase()}
+      </span>
+    )}
+    <div>
+      <h1 class="text-2xl font-extrabold sm:text-3xl">{team.name}</h1>
+      <p class="mt-1 flex flex-wrap items-center gap-2 text-sm text-base-content/70">
+        {team.tag && <span class="badge badge-ghost badge-sm font-mono">{team.tag}</span>}
+        {team.region && <span class="badge badge-outline badge-sm">{regionName(team.region)}</span>}
+        {team.active === false && <span class="badge badge-warning badge-sm">已解散</span>}
+        <span>{roster.length} 名现役选手</span>
+      </p>
+    </div>
+  </header>
+
+  <section class="mb-8" aria-labelledby="roster">
+    <h2 id="roster" class="mb-3 text-lg font-bold">现役阵容</h2>
+    {roster.length === 0 ? (
+      <p class="rounded-box border border-base-300 bg-base-100 p-4 text-sm text-base-content/60">
+        暂无现役选手记录。
+      </p>
+    ) : (
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {roster.map((p) => (
+          <PlayerCard player={p} crosshair={getCurrentCrosshair(p.id)} settings={getSettings(p.id)} />
+        ))}
+      </div>
+    )}
+  </section>
+
+  {roster.length > 0 && (
+    <section class="mb-8" aria-labelledby="compare">
+      <h2 id="compare" class="mb-3 text-lg font-bold">队内灵敏度对比</h2>
+      <DataTable
+        columns={["选手", "位置", "DPI", "灵敏度", "eDPI", "cm/360", "准星样式"]}
+        monoColumns={[2, 3, 4, 5]}
+        rightColumns={[2, 3, 4, 5, 6]}
+        rows={roster.map((p) => {
+          const s = getSettings(p.id);
+          const c = getCurrentCrosshair(p.id);
+          return [
+            p.name,
+            roleName(p.role),
+            numLabel(s?.dpi ?? null),
+            numLabel(s?.sensitivity ?? null),
+            numLabel(edpi(s?.sensitivity ?? null, s?.dpi ?? null) ?? s?.edpi ?? null),
+            numLabel(cm360(s?.sensitivity ?? null, s?.dpi ?? null)),
+            c ? String(c.style) : null,
+          ];
+        })}
+      />
+      <p class="mt-2 text-xs text-base-content/60">
+        cm/360 是转满一圈需要移动的鼠标距离（厘米），数值越小灵敏度越高。
+        CS2 与 CS:GO 的灵敏度 1:1 一致，无需换算。
+      </p>
+    </section>
+  )}
+
+  {alumni.length > 0 && (
+    <section class="mb-8" aria-labelledby="alumni">
+      <h2 id="alumni" class="mb-3 text-lg font-bold">曾效力选手</h2>
+      <ul class="flex flex-wrap gap-2">
+        {alumni.map((p) => (
+          <li>
+            <a href={`/players/${p.slug}`} class="badge badge-outline badge-lg gap-1 no-underline hover:badge-primary">
+              {p.name}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <nav class="flex flex-wrap gap-2 border-t border-base-300 pt-4 text-sm" aria-label="相关页面">
+    <a href="/teams" class="btn btn-ghost btn-sm">← 全部战队</a>
+    <a href="/players" class="btn btn-ghost btn-sm">全部选手</a>
+  </nav>
+</BaseLayout>

@@ -1,0 +1,114 @@
+---
+import BaseLayout from "../../components/layout/BaseLayout.astro";
+import CrosshairSvg from "../../components/crosshair/CrosshairSvg.astro";
+import { pageTitle } from "../../config";
+import { counts, listDistinctCodes } from "../../lib/data";
+import { styleLabel } from "../../lib/format";
+
+const codes = listDistinctCodes();
+
+const title = pageTitle("CS2 准星码查询与生成器");
+const description = `浏览本站收录的 ${codes.length} 个 CS2 职业选手准星码，每个都附可视化预览、21 项参数解析与可导入的 CFG。交互式准星编辑器即将上线。`;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path="/crosshair"
+  jsonLd={{
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: "CS2 准星码查询",
+    applicationCategory: "UtilitiesApplication",
+    inLanguage: "zh-CN",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "CNY" },
+  }}
+  breadcrumbs={[{ label: "首页", href: "/" }, { label: "准星工具" }]}
+>
+  <header class="mb-6">
+    <h1 class="text-2xl font-extrabold sm:text-3xl">CS2 准星码</h1>
+    <p class="mt-2 max-w-3xl text-sm text-base-content/70">
+      准星码是 CS2 里分享准星的方式：一串 <code class="font-mono">CSGO-</code> 开头的 34 字符文本，
+      携带完整的 21 项参数。游戏内「设置 → 准星 → 导入」粘贴即可套用。
+      下面列出本站收录的全部 <strong class="text-base-content">{codes.length}</strong> 个码。
+    </p>
+  </header>
+
+  <div class="alert mb-6">
+    <div>
+      <h2 class="font-bold">交互式编辑器开发中</h2>
+      <p class="text-sm">
+        拖参数实时预览、即时生成准星码与 CFG 的编辑器，以及「粘贴码查参数」的查询框，
+        会在下一阶段上线。现在可以先浏览下面的已收录准星码，或用
+        <a href="/tools/recommender" class="link link-hover">推荐工具</a>找到适合你的设置。
+      </p>
+    </div>
+  </div>
+
+  <section aria-labelledby="gallery">
+    <h2 id="gallery" class="mb-3 text-lg font-bold">已收录的准星码</h2>
+
+    {codes.length === 0 ? (
+      <p class="rounded-box border border-base-300 bg-base-100 p-4 text-sm text-base-content/60">
+        数据库建设中，当前还没有收录任何准星码。
+      </p>
+    ) : (
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {codes.map(({ code, snapshots }) => {
+          const first = snapshots[0];
+          const users = [...new Set(snapshots.map((s) => s.player_slug))];
+          const currentUsers = snapshots.filter((s) => s.is_current);
+          return (
+            <a
+              href={`/crosshair/${code}`}
+              class="card bg-base-100 border border-base-300 no-underline transition-colors hover:border-primary/50"
+            >
+              <div class="card-body items-center gap-2 p-4">
+                <CrosshairSvg
+                  params={first as unknown as Record<string, number | boolean>}
+                  size={110}
+                  title={`准星码 ${code}`}
+                  showNote={false}
+                />
+                <code class="w-full truncate text-center font-mono text-[11px] text-base-content/70" title={code}>
+                  {code}
+                </code>
+                <div class="flex flex-wrap items-center justify-center gap-1">
+                  <span class="badge badge-ghost badge-xs">{styleLabel(first.style)}</span>
+                  {currentUsers.length > 0 ? (
+                    <span class="badge badge-primary badge-xs">
+                      {currentUsers.map((s) => s.player_name).join("、")} 在用
+                    </span>
+                  ) : (
+                    <span class="badge badge-outline badge-xs">历史版本</span>
+                  )}
+                </div>
+                {users.length > 1 && (
+                  <p class="text-xs text-base-content/50">{users.length} 名选手用过</p>
+                )}
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    )}
+  </section>
+
+  <section class="mt-10 rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="howto">
+    <h2 id="howto" class="mb-3 text-base font-bold">怎么用准星码</h2>
+    <ol class="list-decimal space-y-1.5 pl-5 text-sm text-base-content/80">
+      <li>复制准星码（形如 <code class="font-mono text-xs">CSGO-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX</code>）。</li>
+      <li>进入 CS2，打开「设置 → 准星」。</li>
+      <li>点「导入」，粘贴码并确认。</li>
+      <li>
+        想改用 CFG 的话，进码详情页下载完整 21 行 convar，存成
+        <code class="font-mono text-xs">autoexec.cfg</code> 后用 <code class="font-mono text-xs">+exec autoexec.cfg</code> 启动。
+      </li>
+    </ol>
+    <p class="mt-3 text-xs text-base-content/60">
+      本站收录 {counts.distinctCodes} 个准星码，来自 {counts.playersWithCrosshair} 名选手。
+      合法码的格式：<code class="font-mono">CSGO-</code> 开头，后接 5 组各 5 个字符、以连字符分隔，
+      定长 34；字符集只含大小写字母、数字与连字符（剔除了易混淆字符），因此可以直接放进 URL。
+    </p>
+  </section>
+</BaseLayout>

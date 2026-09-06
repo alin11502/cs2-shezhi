@@ -1,0 +1,88 @@
+---
+/**
+ * 内联 SVG 准星。构建时渲染，**无 JS 也能看见**（SEO 与首屏的关键）。
+ *
+ * 几何全部来自 lib/crosshair/geometry.ts 的 buildShapes()，那是全站唯一的
+ * 几何真源；客户端 island 消费同一份 Shape[]，所以两种模式像素级一致。
+ *
+ * viewBox 固定 200（geometry 的 DEFAULTS.size），width/height 才是显示尺寸 ——
+ * 这样"显示多大"与"几何怎么算"解耦，也保证不同选手的准星按真实比例可比。
+ */
+import { buildShapes, styleNote } from "../../lib/crosshair/geometry.ts";
+
+interface Props {
+  params: Record<string, number | boolean>;
+  /** 显示边长（px）。viewBox 始终是 200 */
+  size?: number;
+  /** 无障碍标题，也会作为 <title> 进入 SVG */
+  title?: string;
+  /** 背景：game=中灰带纹理（最接近游戏内观感），dark/light=纯色 */
+  background?: "game" | "dark" | "light" | "none";
+  /** 是否在图下方显示 style 的近似说明（动态/默认/内缩） */
+  showNote?: boolean;
+  class?: string;
+}
+
+const {
+  params,
+  size = 200,
+  title = "准星预览",
+  background = "game",
+  showNote = true,
+  class: className = "",
+} = Astro.props;
+
+const VIEW = 200;
+const shapes = buildShapes(params, { size: VIEW });
+const note = showNote ? styleNote(Number(params.style)) : null;
+
+const bgClass =
+  background === "game"
+    ? "crosshair-preview-bg"
+    : background === "dark"
+      ? "bg-base-300"
+      : background === "light"
+        ? "bg-white"
+        : "";
+---
+
+<figure class={`m-0 flex flex-col items-center gap-2 ${className}`}>
+  <div class={`rounded-box flex items-center justify-center p-2 ${bgClass}`}>
+    <svg
+      viewBox={`0 0 ${VIEW} ${VIEW}`}
+      width={size}
+      height={size}
+      role="img"
+      aria-label={title}
+      class="block max-w-full"
+      style={`width:${size}px;height:${size}px`}
+    >
+      <title>{title}</title>
+      {shapes.map((s) =>
+        s.kind === "rect" ? (
+          <rect
+            x={Math.round(s.x * 100) / 100}
+            y={Math.round(s.y * 100) / 100}
+            width={Math.round(s.w * 100) / 100}
+            height={Math.round(s.h * 100) / 100}
+            fill={s.fill}
+            opacity={s.opacity < 1 ? Math.round(s.opacity * 1000) / 1000 : undefined}
+          />
+        ) : (
+          <circle
+            cx={Math.round(s.cx * 100) / 100}
+            cy={Math.round(s.cy * 100) / 100}
+            r={Math.round(s.r * 100) / 100}
+            fill={s.fill}
+            opacity={s.opacity < 1 ? Math.round(s.opacity * 1000) / 1000 : undefined}
+          />
+        )
+      )}
+    </svg>
+  </div>
+  {note && (
+    <figcaption class="max-w-xs text-center text-xs text-base-content/60">
+      {note}
+    </figcaption>
+  )}
+</figure>

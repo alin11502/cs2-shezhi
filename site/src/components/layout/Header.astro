@@ -1,0 +1,42 @@
+---
+import { NAV, SITE_NAME } from "../../config";
+
+const current = Astro.url.pathname.replace(/\/+$/, "") || "/";
+
+// 导航项高亮：精确匹配，或作为父路径匹配（/players 在 /players/s1mple 下也算激活）
+function isActive(href: string): boolean {
+  const h = href.replace(/\/+$/, "");
+  return current === h || current.startsWith(`${h}/`);
+}
+---
+
+<header class="sticky top-0 z-40 border-b border-base-300 bg-base-100/95 backdrop-blur">
+  <div class="mx-auto flex w-full max-w-6xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
+    <a href="/" class="shrink-0 text-lg font-bold tracking-tight text-base-content no-underline">
+      <span class="text-primary">CS2</span> {SITE_NAME.replace(/^CS2\s*/, "")}
+    </a>
+
+    <!-- 移动端横向滚动，不用 drawer/汉堡菜单 —— 那需要 JS 或额外的 checkbox 结构，
+         而横向滚动无 JS 也可用，且导航项本来就不多 -->
+    <nav aria-label="主导航" class="table-scroll -mx-1 flex-1">
+      <ul class="flex items-center gap-1 px-1">
+        {NAV.map((item) => (
+          <li>
+            <a
+              href={item.href}
+              aria-current={isActive(item.href) ? "page" : undefined}
+              class:list={[
+                "whitespace-nowrap rounded-md px-3 py-1.5 text-sm no-underline transition-colors",
+                isActive(item.href)
+                  ? "bg-primary/15 font-semibold text-primary"
+                  : "text-base-content/70 hover:bg-base-200 hover:text-base-content",
+              ]}
+            >
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  </div>
+</header>

@@ -1,0 +1,113 @@
+---
+/**
+ * 选手卡片，用于 /players/ 列表页。
+ *
+ * 卡片里内联一个缩小版准星 SVG —— 列表页的核心价值是"一眼扫过一堆准星挑喜欢的"，
+ * 只有名字和战队的列表做不到这件事。构建时渲染，无 JS 也可见。
+ *
+ * data-* 属性供 PlayerFilter 的内联脚本做客户端筛选；无 JS 时全部卡片照常显示。
+ */
+import CrosshairSvg from "../crosshair/CrosshairSvg.astro";
+import { countryName, edpi, roleName } from "../../lib/format.ts";
+import type { Player, PlayerSettings, Snapshot } from "../../lib/types.ts";
+
+interface Props {
+  player: Player;
+  crosshair?: Snapshot | null;
+  settings?: PlayerSettings | null;
+}
+
+const { player, crosshair = null, settings = null } = Astro.props;
+
+const e = edpi(settings?.sensitivity ?? null, settings?.dpi ?? null) ?? settings?.edpi ?? null;
+const country = countryName(player.country);
+
+/** 参数快照 → buildShapes 需要的 Record */
+const params = crosshair ? (crosshair as unknown as Record<string, number | boolean>) : null;
+---
+
+<article
+  class="card bg-base-100 border border-base-300 transition-colors hover:border-primary/50"
+  data-player-name={player.name.toLowerCase()}
+  data-player-slug={player.slug}
+  data-role={player.role ?? ""}
+  data-team={player.team?.slug ?? ""}
+  data-country={(player.country ?? "").toLowerCase()}
+>
+  <div class="card-body gap-3 p-4">
+    <div class="flex items-start gap-3">
+      {player.avatar_url ? (
+        <img
+          src={player.avatar_url}
+          alt=""
+          width="48"
+          height="48"
+          loading="lazy"
+          class="h-12 w-12 shrink-0 rounded-full object-cover"
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          class="bg-primary/15 text-primary flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold"
+        >
+          {player.name.slice(0, 1).toUpperCase()}
+        </span>
+      )}
+
+      <div class="min-w-0 flex-1">
+        <h3 class="truncate text-base font-bold">
+          <a href={`/players/${player.slug}`} class="link link-hover text-base-content no-underline hover:text-primary">
+            {player.name}
+          </a>
+        </h3>
+        <p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-base-content/60">
+          {player.team && <span>{player.team.name}</span>}
+          {player.role && <span class="badge badge-ghost badge-xs">{roleName(player.role)}</span>}
+          {country && <span>{country}</span>}
+          {player.status && player.status !== "active" && (
+            <span class="badge badge-warning badge-xs">{player.status === "retired" ? "已退役" : "不活跃"}</span>
+          )}
+        </p>
+      </div>
+    </div>
+
+    {params ? (
+      <div class="flex items-center gap-3">
+        <CrosshairSvg
+          params={params}
+          size={64}
+          title={`${player.name} 的当前准星`}
+          showNote={false}
+          background="dark"
+        />
+        <dl class="min-w-0 flex-1 space-y-0.5 text-xs">
+          {e && (
+            <div class="flex justify-between gap-2">
+              <dt class="text-base-content/60">eDPI</dt>
+              <dd class="font-mono tabular-nums">{e}</dd>
+            </div>
+          )}
+          {settings?.dpi && (
+            <div class="flex justify-between gap-2">
+              <dt class="text-base-content/60">DPI / 灵敏度</dt>
+              <dd class="font-mono tabular-nums">{settings.dpi} / {settings.sensitivity}</dd>
+            </div>
+          )}
+          <div class="flex justify-between gap-2">
+            <dt class="text-base-content/60">样式</dt>
+            <dd class="font-mono tabular-nums">{params.style}</dd>
+          </div>
+        </dl>
+      </div>
+    ) : (
+      <p class="text-xs text-base-content/50">准星数据待补充</p>
+    )}
+
+    <div class="card-actions justify-end">
+      <a href={`/players/${player.slug}`} class="btn btn-ghost btn-xs">查看详情</a>
+      {crosshair && (
+        <a href={`/players/${player.slug}/crosshair`} class="btn btn-ghost btn-xs">准星历史</a>
+      )}
+    </div>
+  </div>
+</article>

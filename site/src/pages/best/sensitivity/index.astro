@@ -1,0 +1,173 @@
+---
+import BaseLayout from "../../../components/layout/BaseLayout.astro";
+import DistributionList from "../../../components/ui/DistributionList.astro";
+import DataTable from "../../../components/ui/DataTable.astro";
+import { pageTitle } from "../../../config";
+import { MIN_SAMPLE_FOR_STATS, counts, hasEnoughSample, settings } from "../../../lib/data";
+import { cm360, edpi, numLabel } from "../../../lib/format";
+
+const withEdpi = settings
+  .map((s) => ({
+    slug: s.player_slug,
+    name: s.player_name,
+    dpi: s.dpi,
+    sensitivity: s.sensitivity,
+    edpi: edpi(s.sensitivity, s.dpi) ?? s.edpi,
+    cm: cm360(s.sensitivity, s.dpi),
+    zoom: s.zoom_sensitivity,
+    resolution: s.resolution,
+    aspect: s.aspect_ratio,
+  }))
+  .filter((r): r is typeof r & { edpi: number } => typeof r.edpi === "number" && r.edpi > 0)
+  .sort((a, b) => a.edpi - b.edpi);
+
+const enough = hasEnoughSample(withEdpi.length);
+
+const percentile = (p: number) =>
+  withEdpi.length ? withEdpi[Math.min(withEdpi.length - 1, Math.floor(withEdpi.length * p))].edpi : null;
+
+const stats = enough
+  ? {
+      min: withEdpi[0].edpi,
+      p25: percentile(0.25),
+      median: percentile(0.5),
+      p75: percentile(0.75),
+      max: withEdpi[withEdpi.length - 1].edpi,
+    }
+  : null;
+
+function tally(pick: (r: (typeof withEdpi)[number]) => string | number | null) {
+  const m = new Map<string, number>();
+  for (const r of withEdpi) {
+    const v = pick(r);
+    if (v === null || v === undefined || v === "") continue;
+    const key = String(v);
+    m.set(key, (m.get(key) ?? 0) + 1);
+  }
+  return [...m.entries()].map(([label, count]) => ({ label, count }));
+}
+
+const dpiDist = tally((r) => r.dpi);
+const aspectDist = tally((r) => r.aspect);
+const resDist = tally((r) => r.resolution);
+const zoomDist = tally((r) => r.zoom);
+
+const title = pageTitle(`职业选手灵敏度统计：eDPI 分布与 cm/360 对照`);
+const description = enough
+  ? `基于本站收录的 ${withEdpi.length} 名 CS2 职业选手，给出 eDPI 的最低/25 分位/中位/75 分位/最高，以及 DPI、屏幕比例、分辨率与开镜灵敏度系数的分布。`
+  : `CS2 职业选手灵敏度与 eDPI 统计。数据库建设中，当前收录 ${withEdpi.length} 名选手，样本达到 ${MIN_SAMPLE_FOR_STATS} 人后展示分布。`;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path="/best/sensitivity"
+  breadcrumbs={[
+    { label: "首页", href: "/" },
+    { label: "灵敏度统计" },
+  ]}
+>
+  <header class="mb-6">
+    <h1 class="text-2xl font-extrabold sm:text-3xl">职业选手灵敏度统计</h1>
+    <p class="mt-2 max-w-3xl text-sm text-base-content/70">
+      eDPI = 鼠标 DPI × 游戏内灵敏度，是跨设备比较灵敏度的唯一可比口径 ——
+      单看游戏内灵敏度没有意义，400 DPI 下的 2.0 和 800 DPI 下的 1.0 手感完全一样。
+    </p>
+  </header>
+
+  {!enough || !stats ? (
+    <div class="alert alert-warning mb-6">
+      <div>
+        <h2 class="font-bold">数据库建设中</h2>
+        <p class="text-sm">
+          当前收录 {withEdpi.length} 名有灵敏度数据的选手，少于 {MIN_SAMPLE_FOR_STATS} 人的门槛，
+          不足以给出有意义的分布。站点共收录 {counts.settings} 份设置，
+          可以先<a href="/players" class="link link-hover">按选手逐个查看</a>。
+        </p>
+      </div>
+    </div>
+  ) : (
+    <>
+      <section class="mb-8" aria-labelledby="edpi">
+        <h2 id="edpi" class="mb-3 text-lg font-bold">eDPI 分布（{withEdpi.length} 名选手）</h2>
+        <div class="stats stats-vertical w-full shadow sm:stats-horizontal">
+          <div class="stat">
+            <div class="stat-title">最低</div>
+            <div class="stat-value text-primary text-2xl">{stats.min}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-title">25 分位</div>
+            <div class="stat-value text-primary text-2xl">{stats.p25}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-title">中位数</div>
+            <div class="stat-value text-primary text-2xl">{stats.median}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-title">75 分位</div>
+            <div class="stat-value text-primary text-2xl">{stats.p75}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-title">最高</div>
+            <div class="stat-value text-primary text-2xl">{stats.max}</div>
+          </div>
+        </div>
+        <p class="mt-3 text-xs text-base-content/60">
+          社区普遍认可的职业区间约 800–1600、中位数约 1100。本站样本 {withEdpi.length} 人，
+          仅作方向参考 —— 灵敏度高度个人化，最终要靠实际手感确定，可以用
+          <a href="/tools/recommender" class="link link-hover">推荐工具</a>做 PSA 精调。
+        </p>
+      </section>
+
+      <section class="mb-8" aria-labelledby="table">
+        <h2 id="table" class="mb-3 text-lg font-bold">逐个选手对照（按 eDPI 升序）</h2>
+        <DataTable
+          columns={["选手", "DPI", "灵敏度", "eDPI", "cm/360", "开镜系数", "分辨率", "比例"]}
+          monoColumns={[1, 2, 3, 4, 5, 6]}
+          rightColumns={[1, 2, 3, 4, 5]}
+          rows={withEdpi.map((r) => [
+            r.name,
+            numLabel(r.dpi),
+            numLabel(r.sensitivity),
+            numLabel(r.edpi),
+            numLabel(r.cm),
+            numLabel(r.zoom),
+            r.resolution,
+            r.aspect,
+          ])}
+        />
+        <p class="mt-2 text-xs text-base-content/60">
+          cm/360 是转满一圈需要移动的鼠标距离（厘米），数值越小灵敏度越高。
+          开镜系数即 <code class="font-mono">zoom_sensitivity_ratio</code>，默认 1.0，
+          职业选手常用 0.8–1.0，其中 0.8189 是 16:9 下 monitor-distance match 的经典取值。
+          <strong>CS2 与 CS:GO 的灵敏度 1:1 一致，不存在换算系数。</strong>
+        </p>
+      </section>
+
+      <div class="grid gap-6 lg:grid-cols-2">
+        <section class="rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="d-dpi">
+          <h2 id="d-dpi" class="mb-3 text-base font-bold">鼠标 DPI</h2>
+          <DistributionList items={dpiDist} total={withEdpi.length} />
+        </section>
+        <section class="rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="d-zoom">
+          <h2 id="d-zoom" class="mb-3 text-base font-bold">开镜灵敏度系数</h2>
+          <DistributionList items={zoomDist} total={withEdpi.length} />
+        </section>
+        <section class="rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="d-aspect">
+          <h2 id="d-aspect" class="mb-3 text-base font-bold">屏幕比例</h2>
+          <DistributionList items={aspectDist} total={withEdpi.length} />
+        </section>
+        <section class="rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="d-res">
+          <h2 id="d-res" class="mb-3 text-base font-bold">分辨率</h2>
+          <DistributionList items={resDist} total={withEdpi.length} limit={8} />
+        </section>
+      </div>
+    </>
+  )}
+
+  <nav class="mt-8 flex flex-wrap gap-2 border-t border-base-300 pt-4 text-sm" aria-label="相关页面">
+    <a href="/best/crosshairs" class="btn btn-ghost btn-sm">准星统计</a>
+    <a href="/best/gear" class="btn btn-ghost btn-sm">外设排行</a>
+    <a href="/tools/recommender" class="btn btn-ghost btn-sm">推荐工具</a>
+  </nav>
+</BaseLayout>

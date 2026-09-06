@@ -1,0 +1,93 @@
+---
+import BaseLayout from "../../../components/layout/BaseLayout.astro";
+import DistributionList from "../../../components/ui/DistributionList.astro";
+import { pageTitle } from "../../../config";
+import { MIN_SAMPLE_FOR_STATS, counts, hasEnoughSample, settings } from "../../../lib/data";
+
+const rows = settings.filter((s) => s.mouse || s.keyboard || s.monitor || s.mousepad || s.headset);
+const enough = hasEnoughSample(rows.length);
+
+function tally(pick: (s: (typeof rows)[number]) => string | null) {
+  const m = new Map<string, number>();
+  for (const s of rows) {
+    const v = pick(s);
+    if (!v) continue;
+    // 型号名做轻量归一：去首尾空白、压缩内部空格，避免同一型号因空格差异被算成两种
+    const key = v.trim().replace(/\s+/g, " ");
+    m.set(key, (m.get(key) ?? 0) + 1);
+  }
+  return [...m.entries()].map(([label, count]) => ({ label, count }));
+}
+
+const mouseDist = tally((s) => s.mouse);
+const mousepadDist = tally((s) => s.mousepad);
+const keyboardDist = tally((s) => s.keyboard);
+const headsetDist = tally((s) => s.headset);
+const monitorDist = tally((s) => s.monitor);
+
+const sections = [
+  { id: "mouse", title: "鼠标", items: mouseDist, note: "职业圈长期由轻量无线鼠标主导。" },
+  { id: "monitor", title: "显示器", items: monitorDist, note: "刷新率通常比分辨率更受重视，240Hz 及以上是主流。" },
+  { id: "keyboard", title: "键盘", items: keyboardDist, note: null },
+  { id: "mousepad", title: "鼠标垫", items: mousepadDist, note: "垫子直接影响手感一致性，选手更换频率远低于鼠标。" },
+  { id: "headset", title: "耳机", items: headsetDist, note: null },
+].filter((s) => s.items.length > 0);
+
+const title = pageTitle(`职业选手外设排行：${mouseDist.length} 款鼠标、${monitorDist.length} 款显示器`);
+const description = enough
+  ? `基于本站收录的 ${rows.length} 名 CS2 职业选手，统计鼠标、显示器、键盘、鼠标垫与耳机的使用排行及各自占比。`
+  : `CS2 职业选手外设使用排行。数据库建设中，当前收录 ${rows.length} 名选手，样本达到 ${MIN_SAMPLE_FOR_STATS} 人后展示排行。`;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path="/best/gear"
+  jsonLd={{
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "CS2 职业选手外设排行",
+    numberOfItems: rows.length,
+  }}
+  breadcrumbs={[
+    { label: "首页", href: "/" },
+    { label: "外设排行" },
+  ]}
+>
+  <header class="mb-6">
+    <h1 class="text-2xl font-extrabold sm:text-3xl">职业选手外设排行</h1>
+    <p class="mt-2 max-w-3xl text-sm text-base-content/70">
+      统计 {rows.length} 名选手在用的鼠标、显示器、键盘、鼠标垫与耳机。
+      外设型号属于人工核对数据，会随选手换装备而过时，每块都标注了来源与核对时间。
+    </p>
+  </header>
+
+  {!enough ? (
+    <div class="alert alert-warning mb-6">
+      <div>
+        <h2 class="font-bold">数据库建设中</h2>
+        <p class="text-sm">
+          当前收录 {rows.length} 名有外设数据的选手，少于 {MIN_SAMPLE_FOR_STATS} 人的门槛。
+          用这么小的样本做"排行"没有意义，所以暂时不展示。站点共收录
+          {counts.settings} 份设置，可以<a href="/players" class="link link-hover">按选手逐个查看</a>。
+        </p>
+      </div>
+    </div>
+  ) : (
+    <div class="grid gap-6 lg:grid-cols-2">
+      {sections.map((s) => (
+        <section class="rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby={`g-${s.id}`}>
+          <h2 id={`g-${s.id}`} class="mb-3 text-base font-bold">{s.title}</h2>
+          <DistributionList items={s.items} total={rows.length} limit={8} />
+          {s.note && <p class="mt-3 text-xs text-base-content/60">{s.note}</p>}
+        </section>
+      ))}
+    </div>
+  )}
+
+  <nav class="mt-8 flex flex-wrap gap-2 border-t border-base-300 pt-4 text-sm" aria-label="相关页面">
+    <a href="/best/crosshairs" class="btn btn-ghost btn-sm">准星统计</a>
+    <a href="/best/sensitivity" class="btn btn-ghost btn-sm">灵敏度统计</a>
+    <a href="/players" class="btn btn-ghost btn-sm">全部选手</a>
+  </nav>
+</BaseLayout>

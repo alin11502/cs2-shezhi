@@ -1,0 +1,63 @@
+---
+import BaseLayout from "../../components/layout/BaseLayout.astro";
+import { pageTitle } from "../../config";
+import { listAllPlayers, teams } from "../../lib/data";
+import { regionName } from "../../lib/format";
+
+const players = listAllPlayers();
+// 只列有选手的战队；空战队档案对内容站没有价值
+const rosterOf = (teamId: string) => players.filter((p) => p.team?.id === teamId);
+const populated = teams.filter((t) => rosterOf(t.id).length > 0);
+
+const title = pageTitle(`CS2 战队列表：${populated.length} 支战队的选手设置`);
+const description = `按战队浏览 CS2 职业选手的准星码与游戏设置，共 ${populated.length} 支战队、${players.length} 名选手。`;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path="/teams"
+  jsonLd={{
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "CS2 战队列表",
+    numberOfItems: populated.length,
+  }}
+  breadcrumbs={[{ label: "首页", href: "/" }, { label: "战队" }]}
+>
+  <header class="mb-6">
+    <h1 class="text-2xl font-extrabold sm:text-3xl">CS2 战队</h1>
+    <p class="mt-2 max-w-3xl text-sm text-base-content/70">
+      按战队浏览选手的准星与设置。共 {populated.length} 支战队、{players.length} 名选手。
+    </p>
+  </header>
+
+  {populated.length === 0 ? (
+    <p class="rounded-box border border-base-300 bg-base-100 p-4 text-sm text-base-content/60">
+      数据库建设中，当前还没有收录任何战队。
+    </p>
+  ) : (
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {populated.map((t) => {
+        const roster = rosterOf(t.id);
+        return (
+          <a href={`/teams/${t.slug}`} class="card bg-base-100 border border-base-300 no-underline transition-colors hover:border-primary/50">
+            <div class="card-body gap-1.5 p-4">
+              <div class="flex items-center justify-between gap-2">
+                <h2 class="card-title text-base text-base-content">{t.name}</h2>
+                {t.tag && <span class="badge badge-ghost badge-sm font-mono">{t.tag}</span>}
+              </div>
+              <p class="text-xs text-base-content/60">
+                {roster.length} 名选手{t.region ? ` · ${regionName(t.region)}` : ""}
+                {t.active === false ? " · 已解散" : ""}
+              </p>
+              <p class="mt-1 truncate text-xs text-base-content/50">
+                {roster.map((p) => p.name).join("、")}
+              </p>
+            </div>
+          </a>
+        );
+      })}
+    </div>
+  )}
+</BaseLayout>

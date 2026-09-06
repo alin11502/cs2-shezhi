@@ -1,0 +1,130 @@
+---
+import BaseLayout from "../../components/layout/BaseLayout.astro";
+import { pageTitle, SITE_NAME } from "../../config";
+import { counts, freshnessNote, meta } from "../../lib/data";
+import { formatDate } from "../../lib/format";
+
+const note = freshnessNote();
+const title = pageTitle("关于本站");
+const description = `${SITE_NAME} 是什么、数据从哪来、为什么这样设计。一个中文的 CS2 职业选手准星与设置数据库，附准星码解析、CFG 导出与灵敏度推荐工具。`;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path="/about"
+  jsonLd={{ "@context": "https://schema.org", "@type": "AboutPage", name: title }}
+  breadcrumbs={[{ label: "首页", href: "/" }, { label: "关于" }]}
+>
+  <h1 class="mb-6 text-2xl font-extrabold sm:text-3xl">关于本站</h1>
+
+  {note && (
+    <div class="alert alert-warning mb-6">
+      <div>
+        <h2 class="font-bold">当前数据状态</h2>
+        <p class="text-sm">{note}</p>
+      </div>
+    </div>
+  )}
+
+  <div class="prose-custom max-w-3xl space-y-4 text-[15px] leading-relaxed text-base-content/90">
+    <p>
+      {SITE_NAME} 是一个纯中文的 CS2 职业选手准星与游戏设置数据库。
+      做它的出发点很简单：想抄一个选手的准星时，中文圈里能查到的信息要么过时、
+      要么互相矛盾、要么散落在各种视频评论区里，没有一个能同时给出
+      <strong>准星码、完整参数、可导入的 CFG、以及数据来自哪里</strong>的地方。
+    </p>
+
+    <h2>本站提供什么</h2>
+    <ul>
+      <li>
+        <strong>选手档案</strong>：准星码、21 项准星参数、灵敏度与 eDPI、cm/360、
+        视频设置、外设型号、按键绑定、战队履历。
+      </li>
+      <li>
+        <strong>准星历史</strong>：按时间线记录选手换过哪些准星。同一套准星在多场比赛复现时
+        不新建版本、只更新「最近见于」，所以时间线上每一条都代表一次真实改动。
+      </li>
+      <li>
+        <strong>准星码库</strong>：每个码一个独立页面，附可视化预览、参数解析与 CFG。
+        手里只有一个码、想知道它长什么样的时候用得上。
+      </li>
+      <li>
+        <strong>统计页</strong>：职业选手的准星参数分布、eDPI 分布、外设排行。
+        样本量不足时会直接说明不足，而不是硬画一个基于三五个人的「分布图」。
+      </li>
+      <li>
+        <strong>指南</strong>：准星码机制、eDPI 与 cm/360 的推导、PSA 灵敏度精调法。
+      </li>
+    </ul>
+
+    <h2>当前收录规模</h2>
+    <p>
+      {counts.playersWithCrosshair} 名选手、{counts.distinctCodes} 个准星码、
+      {counts.settings} 份完整设置、{counts.teams} 支战队、{counts.tenures} 条转会记录。
+      {meta.fetched_at ? `数据同步于 ${formatDate(meta.fetched_at)}。` : ""}
+    </p>
+
+    <h2>技术上的一些选择</h2>
+    <p>
+      本站是静态站：所有页面在构建时生成，服务器只负责吐 HTML。
+      这意味着准星预览、参数表、CFG 文本全部内联在页面里，
+      <strong>禁用 JavaScript 也能完整看到全部内容</strong>（只有「复制」按钮和列表筛选需要 JS）。
+      对搜索引擎友好，对慢网络也友好。
+    </p>
+    <p>
+      准星的可视化由一个纯函数把 21 项参数映射成 SVG 图元，构建端和浏览器端共用同一份几何计算，
+      所以静态页面上看到的准星和交互工具里预览的准星是逐像素一致的。
+    </p>
+
+    <h2>数据的诚实性</h2>
+    <p>
+      这是本站最在意的部分。准星设置这类数据的特点是：<strong>错误的代价很高，
+      而核实成本也不低</strong>。把错的灵敏度挂在一个真实选手名下，
+      会有成千上万人照着抄。所以本站采取几条硬性规则：
+    </p>
+    <ul>
+      <li>每条数据都必须标注来源（demo 自动提取 / 选手本人公开 / 第三方核对）与置信度。</li>
+      <li>人工录入的数据必须记录核对时间，因为设置会变、会过时。</li>
+      <li>拿不准的就不写，宁可显示「待补充」也不填一个看起来合理的猜测值。</li>
+      <li>样本不足时不做统计，明确告知样本量而不是假装结论可靠。</li>
+    </ul>
+    <p>
+      具体政策、以及当前这批数据为什么是虚构样本，见
+      <a href="/about/data">数据来源与准确性声明</a>。
+    </p>
+
+    <h2>与本站无关的声明</h2>
+    <p>
+      本站与 Valve Corporation 无任何关联，非官方、未获授权。
+      Counter-Strike 2 及其相关内容为 Valve 的商标。
+      选手姓名、战队名称与相关信息的版权归各自权利人所有，本站仅在评论与资料整理的范围内引用。
+    </p>
+  </div>
+
+  <nav class="mt-10 flex flex-wrap gap-2 border-t border-base-300 pt-4 text-sm" aria-label="相关页面">
+    <a href="/about/data" class="btn btn-ghost btn-sm">数据来源与准确性声明</a>
+    <a href="/players" class="btn btn-ghost btn-sm">全部选手</a>
+    <a href="/guides" class="btn btn-ghost btn-sm">指南</a>
+  </nav>
+</BaseLayout>
+
+<style is:global>
+  /* 与 guides/[slug].astro 共用同一套 prose 样式类名，
+     但这里只用到少量标签，所以单独给一份最小实现，避免两处样式互相依赖 */
+  .prose-custom h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+    color: var(--color-base-content);
+  }
+  .prose-custom ul { list-style: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
+  .prose-custom li { margin: 0.3rem 0; }
+  .prose-custom strong { color: var(--color-base-content); font-weight: 700; }
+  .prose-custom a {
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+</style>

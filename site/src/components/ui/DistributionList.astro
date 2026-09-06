@@ -1,0 +1,78 @@
+---
+/**
+ * 分布列表：标签 + 计数 + 占比条。三个 /best/* 聚合页共用。
+ *
+ * 纯构建时渲染、无 JS。占比条用内联 style 的宽度百分比而不是 daisyUI 的
+ * progress 组件 —— 后者需要 JS 才有动画，而我们要求无 JS 也完整可见。
+ *
+ * 样本量门槛由调用方负责（data.ts 的 hasEnoughSample）：低于门槛时调用方
+ * 应该整块不渲染这个组件，而不是渲染一个基于 3 个样本的"分布图"来自欺。
+ */
+interface Item {
+  label: string;
+  count: number;
+  /** 可选：点进去看这些选手 */
+  href?: string;
+}
+
+interface Props {
+  items: Item[];
+  total: number;
+  /** 单位名，显示在计数后，如"人" */
+  unit?: string;
+  /** 最多显示几条，其余归入"其他" */
+  limit?: number;
+  class?: string;
+}
+
+const { items, total, unit = "人", limit = 0, class: className = "" } = Astro.props;
+
+const sorted = [...items].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "zh-Hans-CN"));
+const shown = limit > 0 ? sorted.slice(0, limit) : sorted;
+const rest = limit > 0 ? sorted.slice(limit) : [];
+const restCount = rest.reduce((n, r) => n + r.count, 0);
+const max = shown.length ? shown[0].count : 0;
+const pct = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
+---
+
+<div class={className}>
+  {shown.length === 0 ? (
+    <p class="text-sm text-base-content/60">暂无数据。</p>
+  ) : (
+    <ul class="space-y-2">
+      {shown.map((item) => (
+        <li class="grid grid-cols-[minmax(6rem,auto)_1fr_auto] items-center gap-3 text-sm">
+          {item.href ? (
+            <a href={item.href} class="link link-hover truncate text-base-content">{item.label}</a>
+          ) : (
+            <span class="truncate text-base-content">{item.label}</span>
+          )}
+          <span class="h-2.5 rounded-full bg-base-300" role="presentation">
+            <span
+              class="block h-2.5 rounded-full bg-primary"
+              style={`width:${max > 0 ? Math.round((item.count / max) * 100) : 0}%`}
+            />
+          </span>
+          <span class="whitespace-nowrap font-mono text-xs tabular-nums text-base-content/70">
+            {item.count} {unit} · {pct(item.count)}%
+          </span>
+        </li>
+      ))}
+
+      {restCount > 0 && (
+        <li class="grid grid-cols-[minmax(6rem,auto)_1fr_auto] items-center gap-3 text-sm text-base-content/50">
+          <span>其他 {rest.length} 项</span>
+          <span class="h-2.5 rounded-full bg-base-300" role="presentation">
+            <span
+              class="block h-2.5 rounded-full bg-base-content/30"
+              style={`width:${max > 0 ? Math.round((restCount / max) * 100) : 0}%`}
+            />
+          </span>
+          <span class="whitespace-nowrap font-mono text-xs tabular-nums">
+            {restCount} {unit} · {pct(restCount)}%
+          </span>
+        </li>
+      )}
+    </ul>
+  )}
+</div>

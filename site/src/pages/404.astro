@@ -1,0 +1,26 @@
+---
+import BaseLayout from "../components/layout/BaseLayout.astro";
+import { pageTitle } from "../config";
+
+// 404 在 build.format:'directory' 下仍产出根级 dist/404.html，
+// 与 deploy/Caddyfile 的 try_files {path} {path}/ /404.html 精确匹配。
+// 注意 Caddy 的 try_files 末位是重写而非错误码，命中时返回的 HTTP 状态是 200（软 404），
+// 这个缺陷留待后续轮次修 Caddyfile，前端这边先把页面内容做好。
+---
+
+<BaseLayout title={pageTitle("页面不存在")} noindex path="/404">
+  <div class="hero bg-base-100 rounded-box border border-base-300 py-16">
+    <div class="hero-content flex-col text-center">
+      <div class="text-6xl font-extrabold text-primary">404</div>
+      <h1 class="mt-3 text-xl font-bold">这个页面不存在</h1>
+      <p class="mt-2 max-w-md text-base-content/70">
+        链接可能已失效，或者这位选手还没被收录进数据库。
+      </p>
+      <div class="mt-6 flex flex-wrap justify-center gap-3">
+        <a href="/players" class="btn btn-primary">浏览全部选手</a>
+        <a href="/crosshair" class="btn btn-ghost">用准星码查询</a>
+        <a href="/" class="btn btn-ghost">回到首页</a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

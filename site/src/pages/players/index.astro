@@ -1,0 +1,73 @@
+---
+import BaseLayout from "../../components/layout/BaseLayout.astro";
+import PlayerCard from "../../components/player/PlayerCard.astro";
+import PlayerFilter from "../../components/player/PlayerFilter.astro";
+import { pageTitle, SITE_URL } from "../../config";
+import {
+  counts,
+  getCurrentCrosshair,
+  getSettings,
+  isEmpty,
+  listAllPlayers,
+} from "../../lib/data";
+
+const players = listAllPlayers();
+// 角色候选值从实际数据里取，避免下拉里出现库里根本没有的选项
+const roles = [...new Set(players.map((p) => p.role).filter((r): r is string => Boolean(r)))].sort();
+
+const title = pageTitle(`CS2 职业选手设置大全：${counts.playersWithCrosshair} 名选手准星与灵敏度`);
+const description = `收录 ${counts.playersWithCrosshair} 名 CS2 职业选手的准星码、灵敏度、eDPI、分辨率与外设型号。每名选手的准星都可直接复制分享码导入游戏，并按来源逐条标注可信度。`;
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  name: "CS2 职业选手设置列表",
+  numberOfItems: players.length,
+  itemListElement: players.map((p, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    ...(SITE_URL ? { url: `${SITE_URL}/players/${p.slug}` } : {}),
+    name: p.name,
+  })),
+};
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path="/players"
+  jsonLd={jsonLd}
+  breadcrumbs={[{ label: "首页", href: "/" }, { label: "选手" }]}
+>
+  <header class="mb-6">
+    <h1 class="text-2xl font-extrabold sm:text-3xl">CS2 职业选手设置大全</h1>
+    <p class="mt-2 max-w-3xl text-sm text-base-content/70">
+      共收录 <strong class="text-base-content">{counts.playersWithCrosshair}</strong> 名有准星数据的选手
+      （另有 {counts.players - counts.playersWithCrosshair} 名档案待补）。
+      点进任意选手可查看完整的 21 项准星参数、可导入的分享码与 CFG、灵敏度与外设设置，以及准星变更历史。
+    </p>
+  </header>
+
+  {isEmpty ? (
+    <div class="alert alert-warning">
+      <div>
+        <h2 class="font-bold">数据库建设中</h2>
+        <p class="text-sm">当前尚未收录任何选手。数据链路已就绪，等待导入。</p>
+      </div>
+    </div>
+  ) : (
+    <>
+      <PlayerFilter roles={roles} total={players.length} />
+
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {players.map((p) => (
+          <PlayerCard player={p} crosshair={getCurrentCrosshair(p.id)} settings={getSettings(p.id)} />
+        ))}
+      </div>
+
+      <p class="mt-6 text-xs text-base-content/50" id="pf-empty" hidden>
+        没有匹配的选手。试试更短的关键词，或清空筛选条件。
+      </p>
+    </>
+  )}
+</BaseLayout>

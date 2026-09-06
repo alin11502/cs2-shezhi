@@ -1,0 +1,61 @@
+/* Tailwind v4 + daisyUI 5 的唯一入口。
+ *
+ * v4 是 CSS-first 配置：用 @import 取代 v3 的三行 @tailwind，
+ * 主题定制写在下面的 @theme {} 里，**不建 tailwind.config.js**。
+ *
+ * 只加载 dark / light 两套 daisyUI 主题，减少产物体积。
+ * dark 设为默认，配合 BaseLayout 里硬写的 <html data-theme="dark"> ——
+ * 这样禁用 JS 时暗色也生效，不需要 mode-watcher 那种额外的 island。
+ */
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  themes: dark --default, light;
+}
+
+@theme {
+  /* 中文站：系统字体栈，避免引入 webfont 拖慢首屏。
+     优先各平台的中文字体，最后回退到 emoji 与符号字体。 */
+  --font-sans:
+    system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC",
+    "Source Han Sans SC", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+
+  /* 准星参数值、准星码都用等宽字体，便于逐位核对 */
+  --text-code: 0.8125rem;
+}
+
+/* 准星预览的背景：CS2 里准星是叠在游戏画面上的，
+   纯黑或纯白都不真实。用中灰 + 可选的地图纹理底色，
+   并让用户能在 dark/light 两种预览背景间切换以检查描边效果。 */
+@utility crosshair-preview-bg {
+  background-color: color-mix(in oklab, var(--color-base-300) 70%, #4a5240);
+  background-image:
+    linear-gradient(45deg, rgba(0, 0, 0, 0.12) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(0, 0, 0, 0.12) 25%, transparent 25%);
+  background-size: 16px 16px;
+}
+
+/* 长表格在移动端横向滚动而不是撑破版面。
+   daisyUI 的 table 本身不带响应式包裹，所以在每个表格外层加这个类。 */
+@utility table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  /* 滚动时给右侧一点渐隐提示还有内容 */
+  scrollbar-width: thin;
+}
+
+/* 尊重系统的减少动效偏好：动态准星预览的示意动画在此情况下停用 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

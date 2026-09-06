@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- 站点 favicon：一个 CS2 风格的十字准星。
+       四臂 + 中心间隙，与 geometry.ts 的图元构造方式一致。 -->
+  <rect width="32" height="32" rx="6" fill="#1a1d17"/>
+  <g fill="#3ddc5a">
+    <!-- 上臂 -->
+    <rect x="15" y="3" width="2" height="9"/>
+    <!-- 下臂 -->
+    <rect x="15" y="20" width="2" height="9"/>
+    <!-- 左臂 -->
+    <rect x="3" y="15" width="9" height="2"/>
+    <!-- 右臂 -->
+    <rect x="20" y="15" width="9" height="2"/>
+  </g>
+  <!-- 描边层垫在下面会更准确，但 favicon 尺寸太小，这里省略以保持清晰 -->
+</svg>

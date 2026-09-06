@@ -1,0 +1,139 @@
+---
+import BaseLayout from "../../../../components/layout/BaseLayout.astro";
+import SnapshotTimeline from "../../../../components/player/SnapshotTimeline.astro";
+import CrosshairParamsTable from "../../../../components/crosshair/CrosshairParamsTable.astro";
+import ConVarsBlock from "../../../../components/crosshair/ConVarsBlock.astro";
+import SourceBadge from "../../../../components/player/SourceBadge.astro";
+import { pageTitle } from "../../../../config";
+import { getCrosshairHistory, getCurrentCrosshair, listAllPlayers } from "../../../../lib/data";
+import { formatDate, styleLabel } from "../../../../lib/format";
+import type { Player } from "../../../../lib/types";
+
+// 只有真的有准星记录的选手才生成历史页，否则会得到一个空壳页面
+export function getStaticPaths() {
+  return listAllPlayers()
+    .map((player) => ({ player, history: getCrosshairHistory(player.id) }))
+    .filter(({ history }) => history.length > 0)
+    .map(({ player, history }) => ({ params: { slug: player.slug }, props: { player, history } }));
+}
+
+interface Props {
+  player: Player;
+  history: ReturnType<typeof getCrosshairHistory>;
+}
+
+const { player, history } = Astro.props;
+const current = getCurrentCrosshair(player.id) ?? history[0] ?? null;
+
+const title = pageTitle(`${player.name}准星历史：${history.length} 个版本变更时间线`);
+const description = `${player.name} 在 CS2 中用过 ${history.length} 套准星，按时间列出每个版本的分享码、样式与参数变化。当前使用的是${current ? `样式 ${current.style}（${styleLabel(current.style)}）` : "未知"}。`;
+
+// 找出真正发生过参数变化的节点，用于概览
+const changes = history.map((s, i) => {
+  const prev = history[i + 1]; // history 是倒序，前一个版本在後面
+  if (!prev) return { snapshot: s, changed: null as string[] | null };
+  const KEYS = ["style", "length", "thickness", "gap", "color", "center_dot_enabled", "outline", "alpha"] as const;
+  const changed = KEYS.filter((k) => s[k as keyof typeof s] !== prev[k as keyof typeof prev]);
+  return { snapshot: s, changed: changed.length ? [...changed] : null };
+});
+const changedCount = changes.filter((c) => c.changed).length;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path={`/players/${player.slug}/crosshair`}
+  jsonLd={{
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `${player.name} 的准星历史`,
+    numberOfItems: history.length,
+    itemListElement: history.map((s, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: `${formatDate(s.captured_at) ?? "未知日期"} 的准星`,
+    })),
+  }}
+  breadcrumbs={[
+    { label: "首页", href: "/" },
+    { label: "选手", href: "/players" },
+    { label: player.name, href: `/players/${player.slug}` },
+    { label: "准星历史" },
+  ]}
+>
+  <header class="mb-6">
+    <h1 class="text-2xl font-extrabold sm:text-3xl">{player.name} 的准星变更历史</h1>
+    <p class="mt-2 max-w-3xl text-sm text-base-content/70">
+      共 <strong class="text-base-content">{history.length}</strong> 个版本，其中
+      <strong class="text-base-content">{changedCount}</strong> 次相对上一版发生了可见参数变化。
+      同一套准星在多场比赛里复现时不会新建版本，只更新「最近见于」日期，
+      所以这里列出的每一条都代表一次真实的改动。
+    </p>
+    {current && (
+      <p class="mt-2 text-sm">
+        <a href={`/players/${player.slug}`} class="link link-hover">← 回到 {player.name} 的完整设置</a>
+      </p>
+    )}
+  </header>
+
+  <!-- 变化概览：让用户不用逐个展开就能看出改了什么 -->
+  <section class="mb-8" aria-labelledby="changes">
+    <h2 id="changes" class="mb-3 text-lg font-bold">变更概览</h2>
+    <div class="table-scroll rounded-box border border-base-300 bg-base-100">
+      <table class="table table-zebra table-sm">
+        <thead>
+          <tr>
+            <th scope="col">日期</th>
+            <th scope="col">样式</th>
+            <th scope="col">长度 / 间隙</th>
+            <th scope="col">相对上一版的变化</th>
+          </tr>
+        </thead>
+        <tbody>
+          {changes.map(({ snapshot, changed }) => (
+            <tr>
+              <td class="whitespace-nowrap font-mono text-xs">{formatDate(snapshot.captured_at) ?? "?"}</td>
+              <td>{snapshot.style} · {styleLabel(snapshot.style)}</td>
+              <td class="font-mono text-xs tabular-nums">{snapshot.length} / {snapshot.gap}</td>
+              <td class="text-xs">
+                {snapshot.is_current ? (
+                  <span class="badge badge-primary badge-xs">当前使用</span>
+                ) : changed ? (
+                  <span class="text-base-content/70">{changed.join("、")}</span>
+                ) : (
+                  <span class="text-base-content/50">首个记录版本</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mb-8">
+    <SnapshotTimeline snapshots={history} playerName={player.name} />
+  </section>
+
+  <!-- 当前版本的完整参数与 CFG，省得用户跳回详情页 -->
+  {current && (
+    <section class="rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="current-params">
+      <h2 id="current-params" class="mb-3 text-lg font-bold">当前版本：完整参数与 CFG</h2>
+      <SourceBadge
+        source={current.source}
+        confidence={current.confidence}
+        evidence_url={current.evidence_url}
+        batch={current.batch}
+        class="mb-4"
+      />
+      <div class="grid gap-6 lg:grid-cols-2">
+        <CrosshairParamsTable params={current as unknown as Record<string, number | boolean>} caption="21 项准星参数" />
+        <ConVarsBlock
+          params={current as unknown as Record<string, number | boolean>}
+          playerName={player.name}
+          open
+        />
+      </div>
+    </section>
+  )}
+</BaseLayout>

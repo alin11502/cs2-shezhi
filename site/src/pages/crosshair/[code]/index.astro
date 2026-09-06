@@ -1,0 +1,140 @@
+---
+import BaseLayout from "../../../components/layout/BaseLayout.astro";
+import CrosshairSvg from "../../../components/crosshair/CrosshairSvg.astro";
+import CrosshairParamsTable from "../../../components/crosshair/CrosshairParamsTable.astro";
+import ConVarsBlock from "../../../components/crosshair/ConVarsBlock.astro";
+import SourceBadge from "../../../components/player/SourceBadge.astro";
+import { pageTitle } from "../../../config";
+import { getSnapshotsByCode, listDistinctCodes } from "../../../lib/data";
+import { formatDate, styleLabel } from "../../../lib/format";
+
+/**
+ * 准星码详情页。
+ *
+ * 这是"选手名 + 准星"之外的第二类长尾：有人手里就只有一个码，想知道它长什么样、
+ * 参数是什么、谁在用。码字符集 URL 安全（[A-Za-z2-9-]）且定长 34，可以直接当路径段
+ * —— 这一点在方案阶段实测确认过。
+ */
+export function getStaticPaths() {
+  return listDistinctCodes().map(({ code }) => ({
+    params: { code },
+    props: { snapshots: getSnapshotsByCode(code) },
+  }));
+}
+
+interface Props {
+  snapshots: ReturnType<typeof getSnapshotsByCode>;
+}
+
+const { snapshots } = Astro.props;
+const code = Astro.params.code!;
+const first = snapshots[0];
+const params = first as unknown as Record<string, number | boolean>;
+
+// 用这个码的选手，当前使用者排在前面
+const users = [...snapshots].sort((a, b) => Number(b.is_current) - Number(a.is_current));
+const currentUsers = users.filter((s) => s.is_current);
+
+const title = pageTitle(`准星码 ${code} 参数解析`);
+const description = `CS2 准星码 ${code} 的完整 21 项参数解析、可视化预览与可导入的 CFG。${
+  currentUsers.length ? `当前使用者：${currentUsers.map((s) => s.player_name).join("、")}。` : ""
+}`;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path={`/crosshair/${code}`}
+  jsonLd={{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "首页", item: "/" },
+      { "@type": "ListItem", position: 2, name: "准星工具", item: "/crosshair" },
+      { "@type": "ListItem", position: 3, name: code },
+    ],
+  }}
+  breadcrumbs={[
+    { label: "首页", href: "/" },
+    { label: "准星工具", href: "/crosshair" },
+    { label: code },
+  ]}
+>
+  <header class="mb-6">
+    <h1 class="text-xl font-extrabold sm:text-2xl">准星码解析</h1>
+    <div class="mt-2 flex flex-wrap items-center gap-2">
+      <code class="rounded-box bg-base-300 px-3 py-2 font-mono text-sm break-all">{code}</code>
+      <button type="button" class="btn btn-ghost btn-sm" data-copy={code}>复制</button>
+    </div>
+    <p class="mt-2 max-w-3xl text-sm text-base-content/70">
+      样式 {first?.style}（{styleLabel(first?.style ?? null)}）· 长度 {first?.length} ·
+      粗细 {first?.thickness} · 间隙 {first?.gap}。
+      下面是这个码解出的全部 21 项参数与可直接导入游戏的 CFG。
+    </p>
+  </header>
+
+  <section class="mb-8 rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="preview">
+    <h2 id="preview" class="mb-4 text-lg font-bold">预览</h2>
+    <div class="flex flex-col items-center gap-6 lg:flex-row lg:items-start">
+      <CrosshairSvg params={params} size={220} title={`准星码 ${code} 的预览`} class="shrink-0" />
+      <div class="min-w-0 flex-1 space-y-4">
+        <SourceBadge
+          source={first?.source}
+          confidence={first?.confidence}
+          evidence_url={first?.evidence_url}
+          batch={first?.batch}
+        />
+        <p class="text-sm text-base-content/70">
+          准星预览按固定比例绘制，便于和其他选手的准星直接比大小。
+          {first && Number(first.style) === 4 && "这是动态准星，图中画的是静止形态，实际游戏里移动或开火时会向外扩张。"}
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="mb-8" aria-labelledby="users">
+    <h2 id="users" class="mb-3 text-lg font-bold">
+      {users.length > 0 ? `使用这个准星码的选手（${users.length}）` : "使用这个准星码的选手"}
+    </h2>
+    {users.length === 0 ? (
+      <p class="rounded-box border border-base-300 bg-base-100 p-4 text-sm text-base-content/60">
+        本站收录的选手里暂时没有人用这个码。
+      </p>
+    ) : (
+      <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {users.map((s) => (
+          <li class="rounded-box border border-base-300 bg-base-100 p-3">
+            <div class="flex items-center justify-between gap-2">
+              <a href={`/players/${s.player_slug}`} class="link link-hover text-sm font-semibold">
+                {s.player_name}
+              </a>
+              {s.is_current
+                ? <span class="badge badge-primary badge-xs">当前</span>
+                : <span class="badge badge-ghost badge-xs">历史</span>}
+            </div>
+            <p class="mt-1 text-xs text-base-content/60">
+              {s.is_current ? "自 " : "使用于 "}
+              {formatDate(s.captured_at) ?? "日期未知"}
+              {s.last_seen_at && s.last_seen_at !== s.captured_at && (
+                <> · 最近见于 {formatDate(s.last_seen_at)}</>
+              )}
+            </p>
+            {s.demo?.event && (
+              <p class="mt-0.5 truncate text-xs text-base-content/50">{s.demo.event}{s.demo.map ? ` · ${s.demo.map}` : ""}</p>
+            )}
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+
+  <div class="grid gap-6 lg:grid-cols-2">
+    <CrosshairParamsTable params={params} caption="完整 21 项参数" />
+    <ConVarsBlock params={params} />
+  </div>
+
+  <nav class="mt-8 flex flex-wrap gap-2 border-t border-base-300 pt-4 text-sm" aria-label="相关页面">
+    <a href="/crosshair" class="btn btn-ghost btn-sm">← 准星工具（自己调一个）</a>
+    <a href="/best/crosshairs" class="btn btn-ghost btn-sm">选手准星统计</a>
+  </nav>
+</BaseLayout>

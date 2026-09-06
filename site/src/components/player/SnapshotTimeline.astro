@@ -1,0 +1,97 @@
+---
+/**
+ * 准星历史时间线。daisyUI timeline，构建时渲染，无 JS 可见。
+ *
+ * 每一条都画一个缩小版准星 SVG —— 时间线的价值在于**看得出变化**，
+ * 只列日期和码的话用户得自己解码才知道改了什么。
+ */
+import CrosshairSvg from "../crosshair/CrosshairSvg.astro";
+import { formatDate } from "../../lib/format.ts";
+import type { Snapshot } from "../../lib/types.ts";
+
+interface Props {
+  snapshots: Snapshot[];
+  playerName: string;
+  /** 最多显示几条，其余折叠成"查看完整历史"链接 */
+  limit?: number;
+  /** 完整历史页的地址 */
+  fullHistoryHref?: string | null;
+  class?: string;
+}
+
+const { snapshots, playerName, limit = 0, fullHistoryHref = null, class: className = "" } = Astro.props;
+
+// 传入时已按 captured_at 倒序（最新在前）；时间线从上到下按同样顺序展示
+const shown = limit > 0 ? snapshots.slice(0, limit) : snapshots;
+const hidden = snapshots.length - shown.length;
+
+/** 参数快照 → buildShapes 需要的 Record。Snapshot 本身就 extends CrosshairParams。 */
+const toParams = (s: Snapshot) => s as unknown as Record<string, number | boolean>;
+
+function demoLabel(s: Snapshot): string | null {
+  const d = s.demo ?? s.last_seen_demo;
+  if (!d) return null;
+  return [d.event, d.map].filter(Boolean).join(" · ") || null;
+}
+---
+
+<section class={className}>
+  <h2 class="mb-3 text-base font-bold">准星变更历史</h2>
+
+  {shown.length === 0 ? (
+    <p class="rounded-box border border-base-300 bg-base-100 p-4 text-sm text-base-content/60">
+      暂无该选手的准星记录。
+    </p>
+  ) : (
+    <ul class="timeline timeline-vertical w-full">
+      {shown.map((s, i) => (
+        <li>
+          {i > 0 && <hr class="border-base-300" />}
+          <div class="timeline-start text-xs text-base-content/60 w-28 shrink-0">
+            {formatDate(s.captured_at) ?? "日期未知"}
+          </div>
+          <div class="timeline-middle">
+            <span
+              class={`block h-3 w-3 rounded-full ${s.is_current ? "bg-primary" : "bg-base-content/30"}`}
+              aria-hidden="true"
+            />
+          </div>
+          <div class="timeline-end timeline-box w-full">
+            <div class="flex flex-wrap items-start gap-4">
+              <CrosshairSvg
+                params={toParams(s)}
+                size={72}
+                title={`${playerName} 于 ${formatDate(s.captured_at) ?? "未知日期"} 使用的准星`}
+                showNote={false}
+              />
+              <div class="min-w-0 flex-1 space-y-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  {s.is_current && <span class="badge badge-primary badge-sm">当前使用</span>}
+                  <span class="text-sm font-medium">
+                    样式 {s.style} · 长度 {s.length} · 间隙 {s.gap}
+                  </span>
+                </div>
+                <code class="block break-all font-mono text-xs text-base-content/70">{s.code}</code>
+                {demoLabel(s) && (
+                  <p class="text-xs text-base-content/60">{demoLabel(s)}</p>
+                )}
+                {s.last_seen_at && s.last_seen_at !== s.captured_at && (
+                  <p class="text-xs text-base-content/50">
+                    最近见于 {formatDate(s.last_seen_at)}（期间沿用同一套准星，未新建版本）
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+          {i < shown.length - 1 && <hr class="border-base-300" />}
+        </li>
+      ))}
+    </ul>
+  )}
+
+  {hidden > 0 && fullHistoryHref && (
+    <a href={fullHistoryHref} class="btn btn-ghost btn-sm mt-2">
+      查看完整历史（还有 {hidden} 个版本）
+    </a>
+  )}
+</section>

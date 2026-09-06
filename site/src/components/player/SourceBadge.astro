@@ -1,0 +1,75 @@
+---
+/**
+ * 数据溯源标记。每个展示设置的区块都必须挂它。
+ *
+ * 本站的设置数据来自三种渠道（demo 自动提取 / 选手本人公开 / 第三方人工核对），
+ * 置信度差别很大。不标注来源会让用户误以为全部是权威数据 —— 这是内容站的
+ * 信任底线，所以做成一个强制组件而不是可选装饰。
+ *
+ * 样本数据（batch 以 seed-sample 开头）会额外显示醒目的"虚构样本"标记。
+ */
+import { confidenceLabel, formatDate, sourceLabel } from "../../lib/format.ts";
+import type { Confidence, DataSource } from "../../lib/types.ts";
+
+interface Props {
+  source?: DataSource | string | null;
+  confidence?: Confidence | string | null;
+  evidence_url?: string | null;
+  verified_at?: string | null;
+  /** 快照的 batch，用于识别虚构样本数据 */
+  batch?: string | null;
+  /** compact 模式只显示一个 badge，用于表格行内 */
+  compact?: boolean;
+  class?: string;
+}
+
+const {
+  source = null,
+  confidence = null,
+  evidence_url = null,
+  verified_at = null,
+  batch = null,
+  compact = false,
+  class: className = "",
+} = Astro.props;
+
+const isSample = Boolean(batch) && String(batch).startsWith("seed-sample");
+
+// demo 自动提取是最可信的（直接来自比赛录像），第三方核对最弱
+const badgeClass = isSample
+  ? "badge-warning"
+  : source === "demo"
+    ? "badge-success"
+    : source === "player_published"
+      ? "badge-info"
+      : "badge-ghost";
+
+const verified = formatDate(verified_at);
+const conf = confidenceLabel(confidence);
+---
+
+{isSample ? (
+  <div class={`flex flex-wrap items-center gap-1.5 text-xs ${className}`}>
+    <span class="badge badge-warning badge-sm gap-1 font-semibold">虚构样本数据</span>
+    {!compact && (
+      <span class="text-base-content/60">
+        不对应任何真实选手，仅用于验证站点功能。<a href="/about/data" class="link link-hover">详情</a>
+      </span>
+    )}
+  </div>
+) : (
+  <div class={`flex flex-wrap items-center gap-1.5 text-xs ${className}`}>
+    <span class={`badge ${badgeClass} badge-sm gap-1`}>
+      来源：{sourceLabel(source)}
+    </span>
+    {conf && <span class="badge badge-outline badge-sm">置信度 {conf}</span>}
+    {verified && <span class="text-base-content/60">核关于 {verified}</span>}
+    {evidence_url && (
+      <a
+        href={evidence_url}
+        class="link link-hover text-base-content/70"
+        rel="noopener noreferrer nofollow"
+        target="_blank">查看依据</a>
+    )}
+  </div>
+)}

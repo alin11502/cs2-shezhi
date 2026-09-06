@@ -1,0 +1,69 @@
+---
+import BaseLayout from "../../components/layout/BaseLayout.astro";
+import { getCollection } from "astro:content";
+import { pageTitle } from "../../config";
+import { formatDate } from "../../lib/format";
+
+const guides = (await getCollection("guides", ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+
+const title = pageTitle(`CS2 设置指南：准星、灵敏度与外设（${guides.length} 篇）`);
+const description = `CS2 准星码、eDPI 与 cm/360 计算、PSA 灵敏度精调等实用指南。所有数值与结论都经过实测核对，标注了哪些是事实、哪些是经验值。`;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path="/guides"
+  jsonLd={{
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "CS2 设置指南",
+    numberOfItems: guides.length,
+    itemListElement: guides.map((g, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: g.data.title,
+    })),
+  }}
+  breadcrumbs={[{ label: "首页", href: "/" }, { label: "指南" }]}
+>
+  <header class="mb-6">
+    <h1 class="text-2xl font-extrabold sm:text-3xl">指南</h1>
+    <p class="mt-2 max-w-3xl text-sm text-base-content/70">
+      关于准星码、灵敏度换算与调校的实用文章。数值与结论都经过实测核对，
+      经验值会明确标注为经验值，不和事实混在一起说。
+    </p>
+  </header>
+
+  {guides.length === 0 ? (
+    <p class="rounded-box border border-base-300 bg-base-100 p-4 text-sm text-base-content/60">
+      指南还在撰写中。
+    </p>
+  ) : (
+    <div class="grid gap-4 lg:grid-cols-2">
+      {guides.map((g) => (
+        <a
+          href={`/guides/${g.id}`}
+          class="card bg-base-100 border border-base-300 no-underline transition-colors hover:border-primary/50"
+        >
+          <div class="card-body gap-2 p-5">
+            <div class="flex flex-wrap items-center gap-2 text-xs text-base-content/60">
+              <time datetime={g.data.pubDate.toISOString()}>{formatDate(g.data.pubDate.toISOString())}</time>
+              {g.data.tags.map((t) => <span class="badge badge-ghost badge-xs">{t}</span>)}
+            </div>
+            <h2 class="card-title text-base leading-snug text-base-content">{g.data.title}</h2>
+            <p class="text-sm text-base-content/70">{g.data.description}</p>
+          </div>
+        </a>
+      ))}
+    </div>
+  )}
+
+  <nav class="mt-8 flex flex-wrap gap-2 border-t border-base-300 pt-4 text-sm" aria-label="相关页面">
+    <a href="/players" class="btn btn-ghost btn-sm">全部选手</a>
+    <a href="/crosshair" class="btn btn-ghost btn-sm">准星码库</a>
+    <a href="/about/data" class="btn btn-ghost btn-sm">数据来源政策</a>
+  </nav>
+</BaseLayout>

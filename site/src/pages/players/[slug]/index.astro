@@ -1,0 +1,355 @@
+---
+import BaseLayout from "../../../components/layout/BaseLayout.astro";
+import CrosshairSvg from "../../../components/crosshair/CrosshairSvg.astro";
+import CrosshairParamsTable from "../../../components/crosshair/CrosshairParamsTable.astro";
+import ConVarsBlock from "../../../components/crosshair/ConVarsBlock.astro";
+import SourceBadge from "../../../components/player/SourceBadge.astro";
+import DataTable from "../../../components/ui/DataTable.astro";
+import SnapshotTimeline from "../../../components/player/SnapshotTimeline.astro";
+import TenureTimeline from "../../../components/player/TenureTimeline.astro";
+import { SITE_NAME, SITE_URL, pageTitle } from "../../../config";
+import {
+  counts,
+  getCrosshairHistory,
+  getCurrentCrosshair,
+  getKeybinds,
+  getSettings,
+  getTenures,
+  listAllPlayers,
+} from "../../../lib/data";
+import {
+  boolLabel,
+  cm360,
+  colorLabel,
+  countryName,
+  displayLabel,
+  edpi,
+  numLabel,
+  roleName,
+  scalingLabel,
+  sourceLabel,
+  styleLabel,
+} from "../../../lib/format";
+import type { Player } from "../../../lib/types";
+
+export function getStaticPaths() {
+  return listAllPlayers().map((player) => ({ params: { slug: player.slug }, props: { player } }));
+}
+
+interface Props {
+  player: Player;
+}
+
+const { player } = Astro.props;
+
+const current = getCurrentCrosshair(player.id) ?? null;
+const history = getCrosshairHistory(player.id);
+const settings = getSettings(player.id) ?? null;
+const tenures = getTenures(player.id);
+const keybinds = getKeybinds(player.id);
+
+const country = countryName(player.country);
+const role = roleName(player.role);
+const e = edpi(settings?.sensitivity ?? null, settings?.dpi ?? null) ?? settings?.edpi ?? null;
+const cm = cm360(settings?.sensitivity ?? null, settings?.dpi ?? null);
+const year = new Date().getFullYear();
+
+// 标题里塞进可核实的关键事实，比空泛的"XX 设置"更容易被点开
+const teamName = player.team?.name ?? null;
+const title = pageTitle(
+  `${player.name}准星码与灵敏度设置${teamName ? `（${teamName}）` : ""} ${year}最新`
+);
+
+const descriptionParts = [
+  `${player.name}${role ? `（${role}）` : ""}${teamName ? `，${teamName}` : ""}的 CS2 设置。`,
+  current ? `当前准星码 ${current.code}，样式${current.style}（${styleLabel(current.style)}）。` : null,
+  settings?.sensitivity && settings?.dpi
+    ? `灵敏度 ${settings.sensitivity} @ ${settings.dpi} DPI（eDPI ${e}${cm ? `，${cm}cm/360` : ""}）。`
+    : null,
+  settings?.resolution ? `分辨率 ${settings.resolution}${settings.aspect_ratio ? ` ${settings.aspect_ratio}` : ""}。` : null,
+  settings?.mouse ? `鼠标 ${settings.mouse}。` : null,
+  `数据来源：${sourceLabel(current?.source ?? settings?.source)}。`,
+].filter(Boolean);
+const description = descriptionParts.join("").slice(0, 158);
+
+const params = current ? (current as unknown as Record<string, number | boolean>) : null;
+const hasViewmodel =
+  current &&
+  [current.viewmodel_fov, current.viewmodel_offset_x, current.viewmodel_offset_y, current.viewmodel_offset_z].some(
+    (v) => v !== null && v !== undefined
+  );
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: player.name,
+    ...(player.real_name ? { alternateName: player.real_name } : {}),
+    ...(country ? { nationality: country } : {}),
+    ...(player.role ? { jobTitle: role } : {}),
+    ...(teamName ? { memberOf: { "@type": "SportsTeam", name: teamName } } : {}),
+    ...(SITE_URL ? { url: `${SITE_URL}/players/${player.slug}` } : {}),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "首页", ...(SITE_URL ? { item: SITE_URL + "/" } : {}) },
+      { "@type": "ListItem", position: 2, name: "选手", ...(SITE_URL ? { item: `${SITE_URL}/players` } : {}) },
+      { "@type": "ListItem", position: 3, name: player.name },
+    ],
+  },
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path={`/players/${player.slug}`}
+  jsonLd={jsonLd}
+  breadcrumbs={[
+    { label: "首页", href: "/" },
+    { label: "选手", href: "/players" },
+    { label: player.name },
+  ]}
+>
+  <!-- 选手抬头 -->
+  <header class="mb-6 flex flex-wrap items-center gap-4">
+    {player.avatar_url ? (
+      <img
+        src={player.avatar_url}
+        alt={`${player.name} 的头像`}
+        width="80"
+        height="80"
+        class="h-20 w-20 rounded-full object-cover"
+      />
+    ) : (
+      <span
+        aria-hidden="true"
+        class="bg-primary/15 text-primary flex h-20 w-20 items-center justify-center rounded-full text-3xl font-bold"
+      >
+        {player.name.slice(0, 1).toUpperCase()}
+      </span>
+    )}
+    <div class="min-w-0">
+      <h1 class="text-2xl font-extrabold sm:text-3xl">{player.name}</h1>
+      {player.real_name && <p class="text-sm text-base-content/60">本名 {player.real_name}</p>}
+      <p class="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-base-content/70">
+        {teamName && <a href={`/teams/${player.team?.slug}`} class="link link-hover font-medium">{teamName}</a>}
+        {role && <span class="badge badge-ghost badge-sm">{role}</span>}
+        {country && <span class="badge badge-outline badge-sm">{country}</span>}
+        {player.status && player.status !== "active" && (
+          <span class="badge badge-warning badge-sm">
+            {player.status === "retired" ? "已退役" : "不活跃"}
+          </span>
+        )}
+      </p>
+    </div>
+  </header>
+
+  <!-- 当前准星：首屏，内联 SVG，无 JS 可见 -->
+  {current && params ? (
+    <section class="mb-8 rounded-box border border-base-300 bg-base-100 p-5" aria-labelledby="current-crosshair">
+      <h2 id="current-crosshair" class="mb-4 text-lg font-bold">当前准星</h2>
+
+      <div class="flex flex-col items-center gap-6 lg:flex-row lg:items-start">
+        <CrosshairSvg
+          params={params}
+          size={220}
+          title={`${player.name} 的当前 CS2 准星`}
+          class="shrink-0"
+        />
+
+        <div class="min-w-0 flex-1 space-y-4">
+          <div>
+            <p class="mb-1 text-xs text-base-content/60">准星分享码</p>
+            <div class="flex flex-wrap items-center gap-2">
+              <code class="rounded-box bg-base-300 px-3 py-2 font-mono text-sm break-all">{current.code}</code>
+              <button type="button" class="btn btn-ghost btn-sm" data-copy={current.code}>复制</button>
+              <a href={`/crosshair/${current.code}`} class="btn btn-ghost btn-sm">码详情页</a>
+            </div>
+            <p class="mt-2 text-xs text-base-content/60">
+              游戏内：设置 → 准星 → 导入，粘贴即可。
+            </p>
+          </div>
+
+          <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
+            <div><dt class="text-xs text-base-content/60">样式</dt><dd class="font-mono">{current.style} · {styleLabel(current.style)}</dd></div>
+            <div><dt class="text-xs text-base-content/60">颜色</dt><dd class="font-mono">{colorLabel(current.color)}</dd></div>
+            <div><dt class="text-xs text-base-content/60">长度 / 粗细</dt><dd class="font-mono tabular-nums">{current.length} / {current.thickness}</dd></div>
+            <div><dt class="text-xs text-base-content/60">间隙</dt><dd class="font-mono tabular-nums">{current.gap}</dd></div>
+            <div><dt class="text-xs text-base-content/60">中心点</dt><dd class="font-mono">{boolLabel(current.center_dot_enabled)}</dd></div>
+            <div><dt class="text-xs text-base-content/60">描边</dt><dd class="font-mono">{current.outline_enabled ? current.outline : "关"}</dd></div>
+          </dl>
+
+          <SourceBadge
+            source={current.source}
+            confidence={current.confidence}
+            evidence_url={current.evidence_url}
+            verified_at={settings?.verified_at ?? null}
+            batch={current.batch}
+          />
+        </div>
+      </div>
+
+      <div class="mt-6 grid gap-6 lg:grid-cols-2">
+        <CrosshairParamsTable params={params} caption="完整 21 项准星参数" />
+        <div class="space-y-4">
+          <ConVarsBlock params={params} playerName={player.name} />
+          {hasViewmodel && (
+            <DataTable
+              caption="持枪视角（viewmodel）"
+              columns={["参数", "值"]}
+              monoColumns={[1]}
+              rightColumns={[1]}
+              rows={[
+                ["FOV", numLabel(current.viewmodel_fov)],
+                ["偏移 X", numLabel(current.viewmodel_offset_x)],
+                ["偏移 Y", numLabel(current.viewmodel_offset_y)],
+                ["偏移 Z", numLabel(current.viewmodel_offset_z)],
+                ["预设位置", numLabel(current.viewmodel_presetpos)],
+              ]}
+              emptyText="该 demo 未提供持枪视角数据。"
+            />
+          )}
+        </div>
+      </div>
+    </section>
+  ) : (
+    <div class="alert alert-info mb-8">
+      <div>
+        <h2 class="font-bold">准星数据待补充</h2>
+        <p class="text-sm">这名选手的档案已建立，但还没有可核实的准星码。</p>
+      </div>
+    </div>
+  )}
+
+  <!-- 鼠标与灵敏度 -->
+  {settings && (
+    <section class="mb-8" aria-labelledby="mouse-settings">
+      <h2 id="mouse-settings" class="mb-2 text-lg font-bold">鼠标与灵敏度</h2>
+      <SourceBadge
+        source={settings.source}
+        confidence={settings.confidence}
+        evidence_url={settings.evidence_url}
+        verified_at={settings.verified_at}
+        class="mb-3"
+      />
+      <DataTable
+        caption=""
+        columns={["项目", "值"]}
+        monoColumns={[1]}
+        rightColumns={[1]}
+        rows={[
+          ["游戏内灵敏度", numLabel(settings.sensitivity)],
+          ["鼠标 DPI", numLabel(settings.dpi)],
+          ["eDPI（灵敏度 × DPI）", numLabel(e)],
+          ["cm/360（转身一圈移动距离）", numLabel(cm)],
+          ["开镜灵敏度系数", numLabel(settings.zoom_sensitivity)],
+          ["Windows 灵敏度（1–11）", numLabel(settings.windows_sensitivity)],
+          ["回报率 Hz", numLabel(settings.polling_rate)],
+          ["原始输入", boolLabel(settings.raw_input)],
+        ]}
+      />
+      {settings.notes && (
+        <p class="mt-2 text-xs text-base-content/60">备注：{settings.notes}</p>
+      )}
+    </section>
+  )}
+
+  <!-- 视频设置 -->
+  {settings && (
+    <section class="mb-8" aria-labelledby="video-settings">
+      <h2 id="video-settings" class="mb-3 text-lg font-bold">视频设置</h2>
+      <DataTable
+        caption=""
+        columns={["项目", "值"]}
+        monoColumns={[1]}
+        rightColumns={[1]}
+        rows={[
+          ["分辨率", settings.resolution],
+          ["屏幕比例", settings.aspect_ratio],
+          ["缩放模式", scalingLabel(settings.scaling_mode)],
+          ["刷新率 Hz", numLabel(settings.refresh_rate)],
+          ["亮度", numLabel(settings.brightness)],
+          ["显示模式", displayLabel(settings.display_mode)],
+          ["多重采样抗锯齿", numLabel(settings.multisampling)],
+          ["增强玩家对比度", settings.boost_player_contrast === "enabled" ? "开" : settings.boost_player_contrast === "disabled" ? "关" : null],
+        ]}
+      />
+    </section>
+  )}
+
+  <!-- 外设 -->
+  {settings && (settings.mouse || settings.keyboard || settings.headset || settings.monitor || settings.mousepad) && (
+    <section class="mb-8" aria-labelledby="gear">
+      <h2 id="gear" class="mb-3 text-lg font-bold">外设</h2>
+      <DataTable
+        caption=""
+        columns={["类别", "型号"]}
+        rows={[
+          ["鼠标", settings.mouse],
+          ["鼠标垫", settings.mousepad],
+          ["键盘", settings.keyboard],
+          ["耳机", settings.headset],
+          ["显示器", settings.monitor],
+        ]}
+      />
+      {settings.launch_options && (
+        <div class="mt-3">
+          <p class="mb-1 text-xs text-base-content/60">启动项</p>
+          <div class="flex flex-wrap items-center gap-2">
+            <code class="rounded-box bg-base-300 px-3 py-2 font-mono text-xs break-all">{settings.launch_options}</code>
+            <button type="button" class="btn btn-ghost btn-xs" data-copy={settings.launch_options}>复制</button>
+          </div>
+        </div>
+      )}
+    </section>
+  )}
+
+  <!-- 按键绑定 -->
+  {keybinds.length > 0 && (
+    <section class="mb-8" aria-labelledby="keybinds">
+      <h2 id="keybinds" class="mb-3 text-lg font-bold">按键绑定</h2>
+      <DataTable
+        caption=""
+        columns={["动作", "按键", "原始命令"]}
+        monoColumns={[1, 2]}
+        rows={keybinds.map((k) => [k.action, k.key, k.raw_command])}
+      />
+    </section>
+  )}
+
+  <!-- 准星历史 -->
+  {history.length > 0 && (
+    <section class="mb-8">
+      <SnapshotTimeline
+        snapshots={history}
+        playerName={player.name}
+        limit={history.length > 5 ? 5 : 0}
+        fullHistoryHref={history.length > 5 ? `/players/${player.slug}/crosshair` : null}
+      />
+      {history.length > 0 && (
+        <p class="mt-2 text-xs text-base-content/50">
+          共 {history.length} 个版本。同一套准星在多场比赛复现时不新建版本，只更新「最近见于」。
+        </p>
+      )}
+    </section>
+  )}
+
+  <!-- 转会史 -->
+  <section class="mb-8">
+    <TenureTimeline tenures={tenures} />
+  </section>
+
+  <nav class="flex flex-wrap gap-2 border-t border-base-300 pt-4 text-sm" aria-label="相关页面">
+    <a href="/players" class="btn btn-ghost btn-sm">← 全部选手</a>
+    {current && <a href={`/crosshair/${current.code}`} class="btn btn-ghost btn-sm">这个准星码还有谁在用</a>}
+    <a href="/tools/recommender" class="btn btn-ghost btn-sm">找适合我的设置</a>
+  </nav>
+
+  <p class="mt-4 text-xs text-base-content/50">
+    本站共收录 {counts.playersWithCrosshair} 名选手、{counts.distinctCodes} 个准星码。
+    数据准确性说明见 <a href="/about/data" class="link link-hover">{SITE_NAME} 的数据来源政策</a>。
+  </p>
+</BaseLayout>

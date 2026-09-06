@@ -1,0 +1,76 @@
+---
+/**
+ * 通用数据表。鼠标/视频/外设/按键四类设置都用它，避免写四个近乎相同的组件。
+ *
+ * 空值渲染成 — 而不是隐藏整行：表格的价值在于**可对比**，
+ * 隐藏缺失项会让不同选手的表看起来行数不一样、无法逐行对齐比较。
+ */
+interface Props {
+  /** 表格标题。调用方已在外面写了 h2 时可省略，此时不渲染标题元素 */
+  caption?: string;
+  columns: string[];
+  /** 每行的单元格；null / undefined / "" 都渲染成 — */
+  rows: (string | number | null | undefined)[][];
+  /** 哪些列用等宽字体（数值、convar、按键名等需要逐位核对的内容） */
+  monoColumns?: number[];
+  /** 哪些列右对齐（数值列） */
+  rightColumns?: number[];
+  /** 没有数据时显示的提示 */
+  emptyText?: string;
+  class?: string;
+}
+
+const {
+  caption = "",
+  columns,
+  rows,
+  monoColumns = [],
+  rightColumns = [],
+  emptyText = "暂无数据",
+  class: className = "",
+} = Astro.props;
+
+const mono = new Set(monoColumns);
+const right = new Set(rightColumns);
+const cell = (v: string | number | null | undefined) =>
+  v === null || v === undefined || v === "" ? "—" : String(v);
+---
+
+<section class={className}>
+  {caption && <h2 class="mb-2 text-base font-bold">{caption}</h2>}
+  {rows.length === 0 ? (
+    <p class="rounded-box border border-base-300 bg-base-100 p-4 text-sm text-base-content/60">
+      {emptyText}
+    </p>
+  ) : (
+    <div class="table-scroll rounded-box border border-base-300 bg-base-100">
+      <table class="table table-zebra table-sm">
+        {caption && <caption class="sr-only">{caption}</caption>}
+        <thead>
+          <tr>
+            {columns.map((c, i) => (
+              <th scope="col" class={right.has(i) ? "text-right" : ""}>{c}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr>
+              {columns.map((_, i) => (
+                <td
+                  class:list={[
+                    mono.has(i) ? "font-mono text-xs" : "",
+                    right.has(i) ? "text-right tabular-nums" : "",
+                    cell(r[i]) === "—" ? "text-base-content/40" : "",
+                  ]}
+                >
+                  {cell(r[i])}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</section>

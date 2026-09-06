@@ -1,0 +1,152 @@
+---
+import BaseLayout from "../components/layout/BaseLayout.astro";
+import PlayerCard from "../components/player/PlayerCard.astro";
+import { SITE_NAME, SITE_DESCRIPTION } from "../config";
+import {
+  counts,
+  freshnessNote,
+  getCurrentCrosshair,
+  getSettings,
+  listPlayersWithCrosshair,
+} from "../lib/data";
+
+const note = freshnessNote();
+
+// 首页速览只放前 6 名，完整列表在 /players
+const featured = listPlayersWithCrosshair()
+  .slice(0, 6)
+  .map((player) => ({
+    player,
+    crosshair: getCurrentCrosshair(player.id),
+    settings: getSettings(player.id),
+  }));
+
+const features = [
+  {
+    title: "准星码与参数",
+    desc: "每个选手的准星都附分享码，可直接粘进游戏；21 项参数逐条列出，并给出可导入的 CFG。",
+    href: "/players",
+    badge: "数据库",
+  },
+  {
+    title: "准星历史",
+    desc: "按比赛时间线记录选手换过哪些准星，看得到变更节点，而不只是当前这一套。",
+    href: "/players",
+    badge: "时间线",
+  },
+  {
+    title: "准星生成器",
+    desc: "拖参数实时预览、即时生成准星码与 CFG。所有输入先做范围钳制，不会产出参数错乱的码。",
+    href: "/crosshair",
+    badge: "工具",
+  },
+  {
+    title: "准星与灵敏度推荐",
+    desc: "回答几个问题，给出适配你的准星参数与灵敏度区间，并用 PSA 二分法逐步精调。",
+    href: "/tools/recommender",
+    badge: "工具",
+  },
+] as const;
+---
+
+<BaseLayout
+  title={`${SITE_NAME} - 职业选手准星码、灵敏度与外设数据库`}
+  description={SITE_DESCRIPTION}
+  path="/"
+  jsonLd={{
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    inLanguage: "zh-CN",
+  }}
+>
+  <section class="hero bg-base-100 rounded-box border border-base-300 py-12 sm:py-16">
+    <div class="hero-content max-w-3xl flex-col items-start text-left">
+      <div class="badge badge-primary badge-outline mb-2">纯中文 · 数据逐条标注来源</div>
+      <h1 class="text-3xl font-extrabold leading-tight sm:text-4xl">
+        CS2 职业选手的<span class="text-primary">准星</span>与<span class="text-primary">设置</span>，一站查全
+      </h1>
+      <p class="mt-3 text-base-content/70">
+        准星码、灵敏度、eDPI、视频设置、外设型号，以及选手换准星的历史时间线。
+        每条数据都标明它来自比赛 demo 自动提取、选手本人公开，还是第三方人工核对。
+      </p>
+      <div class="mt-5 flex flex-wrap gap-3">
+        <a href="/players" class="btn btn-primary">浏览选手</a>
+        <a href="/tools/recommender" class="btn btn-ghost">找到适合我的设置</a>
+      </div>
+    </div>
+  </section>
+
+  {note && (
+    <div class="alert alert-warning mt-6 py-3 text-sm">
+      <span>{note}</span>
+    </div>
+  )}
+
+  <div class="stats stats-vertical mt-6 w-full shadow sm:stats-horizontal">
+    <div class="stat">
+      <div class="stat-title">收录选手</div>
+      <div class="stat-value text-primary">{counts.playersWithCrosshair}</div>
+      <div class="stat-desc">
+        {counts.players > counts.playersWithCrosshair
+          ? `另有 ${counts.players - counts.playersWithCrosshair} 名档案待补准星`
+          : "均已有准星数据"}
+      </div>
+    </div>
+    <div class="stat">
+      <div class="stat-title">准星码</div>
+      <div class="stat-value text-primary">{counts.distinctCodes}</div>
+      <div class="stat-desc">{counts.snapshots} 条历史快照（含变更记录）</div>
+    </div>
+    <div class="stat">
+      <div class="stat-title">完整设置</div>
+      <div class="stat-value text-primary">{counts.settings}</div>
+      <div class="stat-desc">灵敏度 / 视频 / 外设，逐条标注来源</div>
+    </div>
+  </div>
+
+  {featured.length > 0 && (
+    <section class="mt-10" aria-labelledby="featured">
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+        <h2 id="featured" class="text-xl font-bold">选手准星速览</h2>
+        <a href="/players" class="btn btn-ghost btn-sm">全部 {counts.playersWithCrosshair} 名选手 →</a>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {featured.map(({ player, crosshair, settings }) => (
+          <PlayerCard player={player} crosshair={crosshair} settings={settings} />
+        ))}
+      </div>
+    </section>
+  )}
+
+  <h2 class="mt-10 text-xl font-bold">能在这里做什么</h2>
+  <div class="mt-4 grid gap-4 sm:grid-cols-2">
+    {features.map((f) => (
+      <a href={f.href} class="card bg-base-100 border border-base-300 no-underline transition-colors hover:border-primary/50">
+        <div class="card-body gap-2 p-5">
+          <div class="flex items-center justify-between gap-2">
+            <h3 class="card-title text-base text-base-content">{f.title}</h3>
+            <span class="badge badge-ghost badge-sm">{f.badge}</span>
+          </div>
+          <p class="text-sm text-base-content/70">{f.desc}</p>
+        </div>
+      </a>
+    ))}
+  </div>
+
+  <div class="alert alert-info mt-8">
+    <div>
+      <h3 class="font-bold">关于准星码的 21 项参数</h3>
+      <p class="text-sm">
+        准星分享码携带全部 21 项参数。其中
+        <code class="font-mono text-xs">split_distance</code>、
+        <code class="font-mono text-xs">inner_split_alpha</code>、
+        <code class="font-mono text-xs">outer_split_alpha</code>、
+        <code class="font-mono text-xs">split_size_ratio</code>
+        是动态准星（style=4）的分裂行为参数：静态样式下不影响外观，但它们确实编码在码里、
+        是选手的真实设置，本站原样展示并完整写进可下载的 CFG。
+      </p>
+    </div>
+  </div>
+</BaseLayout>

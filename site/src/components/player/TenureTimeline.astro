@@ -1,0 +1,84 @@
+---
+/**
+ * 转会历史时间线。数据来自 player_tenures，已在 data.ts 里按 start_date 正序排好。
+ *
+ * end_date 为空表示当前仍在队 —— 这一条要显眼区分，否则用户看不出选手现在在哪。
+ */
+import { formatDate, roleName } from "../../lib/format.ts";
+import type { Tenure } from "../../lib/types.ts";
+
+interface Props {
+  tenures: Tenure[];
+  class?: string;
+}
+
+const { tenures, class: className = "" } = Astro.props;
+
+/** 在队时长（年）。end_date 为空则算到今天。 */
+function duration(t: Tenure): string | null {
+  if (!t.start_date) return null;
+  const start = new Date(t.start_date.includes("T") ? t.start_date : t.start_date.replace(" ", "T"));
+  if (isNaN(start.getTime())) return null;
+  const end = t.end_date
+    ? new Date(t.end_date.includes("T") ? t.end_date : t.end_date.replace(" ", "T"))
+    : new Date();
+  if (isNaN(end.getTime())) return null;
+  const years = (end.getTime() - start.getTime()) / (365.25 * 24 * 3600 * 1000);
+  if (years < 1) {
+    const months = Math.max(1, Math.round(years * 12));
+    return `约 ${months} 个月`;
+  }
+  return `约 ${Math.round(years * 10) / 10} 年`;
+}
+---
+
+<section class={className}>
+  <h2 class="mb-3 text-base font-bold">战队履历</h2>
+
+  {tenures.length === 0 ? (
+    <p class="rounded-box border border-base-300 bg-base-100 p-4 text-sm text-base-content/60">
+      暂无战队履历记录。
+    </p>
+  ) : (
+    <ul class="timeline timeline-vertical w-full">
+      {tenures.map((t, i) => {
+        const current = !t.end_date;
+        return (
+          <li>
+            {i > 0 && <hr class="border-base-300" />}
+            <div class="timeline-start text-xs text-base-content/60 w-28 shrink-0">
+              {formatDate(t.start_date) ?? "?"}
+            </div>
+            <div class="timeline-middle">
+              <span
+                class={`block h-3 w-3 rounded-full ${current ? "bg-primary" : "bg-base-content/30"}`}
+                aria-hidden="true"
+              />
+            </div>
+            <div class="timeline-end timeline-box w-full">
+              <div class="flex flex-wrap items-center gap-2">
+                <a href={`/teams/${t.team_slug}`} class="text-sm font-semibold link link-hover">
+                  {t.team_name}
+                </a>
+                {t.role && <span class="badge badge-ghost badge-sm">{roleName(t.role)}</span>}
+                {current && <span class="badge badge-primary badge-sm">现役</span>}
+                <span class="text-xs text-base-content/60">
+                  {current ? "至今" : `– ${formatDate(t.end_date)}`}
+                  {duration(t) ? ` · ${duration(t)}` : ""}
+                </span>
+              </div>
+              {t.source_url && (
+                <a
+                  href={t.source_url}
+                  class="mt-1 inline-block text-xs link link-hover text-base-content/60"
+                  rel="noopener noreferrer nofollow"
+                  target="_blank">来源</a>
+              )}
+            </div>
+            {i < tenures.length - 1 && <hr class="border-base-300" />}
+          </li>
+        );
+      })}
+    </ul>
+  )}
+</section>
