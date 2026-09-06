@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 
 import { paramsToCode, codeToParams, isRoundTripStable } from "../src/lib/crosshair/codec.ts";
 import { PARAM_KEYS, BOOL_PARAMS } from "../src/lib/crosshair/fields.ts";
-import { RANGES } from "../src/lib/crosshair/clamp.ts";
-import { buildShapes } from "../src/lib/crosshair/geometry.ts";
+import { RANGES, UI_MAX } from "../src/lib/crosshair/clamp.ts";
+import { buildShapes, DEFAULT_SCALE, effectiveGap } from "../src/lib/crosshair/geometry.ts";
 
 /**
  * 随机参数模糊测试。
@@ -141,10 +141,17 @@ describe("模糊测试：故意越界的随机参数", () => {
   });
 });
 
-describe("模糊测试：几何渲染不越界、不产 NaN", () => {
-  it("随机参数下所有图元坐标都是有限数且落在 viewBox 附近", () => {
+describe("模糊测试：几何渲染不产 NaN、溢出有界", () => {
+  // scale 提到 DEFAULT_SCALE 后，极端参数（length 25.5 + gap 12.7 → 半宽 38.2 单位）
+  // 乘缩放再叠加描边外扩，坐标会到 ±500 左右，远超 200 的 viewBox。
+  // 这是设计内已文档化的裁切行为（geometry.ts 的注释），不是 bug。
+  // 所以这里断言的是"溢出有界"而不是"落在 viewBox 内"。
+  const MAX_HALF_UNITS = Math.max(RANGES.gap[1], RANGES.gap[1] + RANGES.length[1]);
+  const MAX_OUTLINE_UNITS = UI_MAX.outline;
+  const bound = 100 + (MAX_HALF_UNITS + MAX_OUTLINE_UNITS) * DEFAULT_SCALE + 1e-6;
+
+  it("随机参数下坐标有限、尺寸非负、opacity 合法、溢出有界", () => {
     const rng = makeRng(20260905);
-    const SIZE = 200;
     for (let i = 0; i < 1000; i++) {
       const r = paramsToCode(randomParams(rng, { wild: true }));
       const shapes = buildShapes(r.params);
@@ -154,12 +161,44 @@ describe("模糊测试：几何渲染不越界、不产 NaN", () => {
             assert.ok(Number.isFinite(v), `第 ${i} 组出现非有限坐标: ${JSON.stringify(s)}`);
           }
           assert.ok(s.w >= 0 && s.h >= 0, `第 ${i} 组出现负尺寸: ${JSON.stringify(s)}`);
-          // 极限参数下允许描边略微出血，但不该离谱
-          assert.ok(s.x > -SIZE && s.y > -SIZE && s.x + s.w < SIZE * 2 && s.y + s.h < SIZE * 2,
-            `第 ${i} 组图元严重越界: ${JSON.stringify(s)}`);
+          assert.ok(Math.abs(s.x + s.w / 2 - 100) <= bound, `第 ${i} 组横向溢出失控: ${JSON.stringify(s)}`);
+          assert.ok(Math.abs(s.y + s.h / 2 - 100) <= bound, `第 ${i} 组纵向溢出失控: ${JSON.stringify(s)}`);
           assert.ok(s.opacity >= 0 && s.opacity <= 1, `第 ${i} 组 opacity 越界: ${s.opacity}`);
         }
       }
     }
+  });
+
+  it("不超出画布的准星不应被裁切（裁切只发生在溢出时）", () => {
+    const rng = makeRng(777);
+    let checked = 0;
+    // scale=12 下"装得进画布"的条件较严（半宽 + 描边 ≤ 8.33 单位），
+    // 随机样本里约 7% 合格，所以迭代次数要给足，门槛才有区分度。
+    for (let i = 0; i < 20000; i++) {
+      const p = randomParams(rng, { wild: false });
+      // 必须用 effectiveGap 而不是原始 gap：buildShapes 内部用的就是 effectiveGap
+      // （deployed_weapon_gap_enabled 为假且 fixed_crosshair_gap 非零时取后者），
+      // 用原始 gap 会算出不同的半宽，把本该跳过的溢出样本误判为"装得进画布"。
+      const gap = effectiveGap(p);
+      // 包围盒半宽要同时考虑三个方向：
+      //   沿轴方向 = max(|gap|, |gap+length|)（臂从 gap 延伸到 gap+length）
+      //   垂直方向 = thickness/2（竖臂的宽度是 thickness，向两侧各伸一半）
+      // 漏掉 thickness 会误判：thickness 17 的准星臂宽 17×SCALE=204，比画布还宽。
+      const half = Math.max(
+        Math.abs(gap),
+        Math.abs(gap + Number(p.length)),
+        Number(p.thickness) / 2
+      );
+      const pad = (p.outline_enabled ? Number(p.outline) : 0) * DEFAULT_SCALE;
+      // 只有"半宽 + 描边外扩"确实装得进画布半宽时，才要求图元完整不裁切。
+      if (half * DEFAULT_SCALE + pad > 100) continue;
+      checked++;
+      for (const s of buildShapes(p)) {
+        if (s.kind !== "rect") continue;
+        assert.ok(s.x >= 0 && s.y >= 0, `装得进画布却被裁切（起点越界）: ${JSON.stringify(s)}`);
+        assert.ok(s.x + s.w <= 200 && s.y + s.h <= 200, `装得进画布却被裁切（终点越界）: ${JSON.stringify(s)}`);
+      }
+    }
+    assert.ok(checked > 200, `可容纳样本太少（${checked}），这条断言没有区分度`);
   });
 });

@@ -30,7 +30,7 @@ export type Shape =
 export interface GeometryOptions {
   /** viewBox 边长，默认 200 */
   size?: number;
-  /** 每个游戏单位对应多少 viewBox 单位，默认 4 */
+  /** 每个游戏单位对应多少 viewBox 单位，默认 DEFAULT_SCALE（12） */
   scale?: number;
   /** 覆盖 gap（动态准星逐帧动画时传当前扩张后的 gap） */
   gapOverride?: number;
@@ -38,17 +38,26 @@ export interface GeometryOptions {
   outlineColor?: string;
 }
 
-const DEFAULTS = { size: 200, scale: 4, outlineColor: "#000000" } as const;
+/**
+ * 默认缩放：1 个游戏单位 = 12 个 viewBox 单位。
+ *
+ * 不用屏幕真实比例。真实准星相对屏幕很小（length 4 / gap −2 的准星包围盒半宽
+ * 只有约 4 个游戏单位，约占 1080p 屏幕宽的 2%），按屏幕比例画的话预览图上
+ * 它就是一个点 —— 实测 scale=4 时选手卡片上的准星几乎不可见。
+ * scale=12 让典型准星（半宽约 4 单位）占画布半宽的约一半，清晰可辨。
+ */
+export const DEFAULT_SCALE = 12;
+
+const DEFAULTS = { size: 200, scale: DEFAULT_SCALE, outlineColor: "#000000" } as const;
 
 // viewBox 与 scale 的取舍（有意为之，别"优化"成自适应）：
 //
-// 固定 scale 才能让不同选手的准星按**真实比例**对比 —— 这是准星站最重要的信息，
+// 固定 scale 才能让不同选手的准星按**同一比例**对比 —— 这是准星站最重要的信息，
 // 自适应 viewBox 会让大准星和小准星看起来一样大，直接毁掉对比价值。
 //
-// 代价是极端参数会溢出：length 25.5 + gap 12.7 时半宽达 (12.7+25.5)*4 = 152.8
+// 代价是极端参数会溢出：length 25.5 + gap 12.7 时半宽达 38.2 单位 × 12 = 458
 // 个单位，远超 size/2 = 100，多出的部分由 SVG 按 viewBox 裁掉。
-// 实践中没有选手用这种参数，裁切可接受；常见准星（length 2–6、gap −4–0）
-// 在 scale=4 下占据画面合适比例。
+// 实践中没有选手用这种参数，裁切可接受。
 
 /** 中心点的最小边长，防止 thickness 极小时中心点看不见 */
 const MIN_DOT_SIZE = 1.5;

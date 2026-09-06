@@ -1,8 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { buildShapes, effectiveGap, shapesToSvg, styleNote, type Shape } from "../src/lib/crosshair/geometry.ts";
+import { buildShapes, DEFAULT_SCALE, effectiveGap, shapesToSvg, styleNote, type Shape } from "../src/lib/crosshair/geometry.ts";
 import { PRESET_RGB, resolveRgb, CUSTOM_COLOR_INDEX } from "../src/lib/crosshair/color.ts";
+import { UI_MAX } from "../src/lib/crosshair/clamp.ts";
 
 const BASE = {
   style: 4, length: 5, thickness: 1, gap: -2, color: 1,
@@ -13,7 +14,8 @@ const BASE = {
 };
 
 const SIZE = 200;
-const SCALE = 4;
+// 从 geometry 导入而不是硬编码：默认缩放调整时测试自动跟随，不会悄悄测错的比例
+const SCALE = DEFAULT_SCALE;
 const CENTER = SIZE / 2;
 const rects = (shapes: Shape[]) => shapes.filter((s) => s.kind === "rect");
 
@@ -167,10 +169,14 @@ describe("buildShapes：几何位置", () => {
         assert.ok(Number.isFinite(v), `出现非有限坐标: ${JSON.stringify(s)}`);
       }
       assert.ok(s.w >= 0 && s.h >= 0, `出现负尺寸: ${JSON.stringify(s)}`);
-      // 描边钳制前 outline=127.5 会外扩 510 单位、把图元撑到 1050；
-      // 钳到 UI_MAX(3)*scale(4)=12 之后，最大边长不应超过臂长 + 2*12
+      // 描边钳制前 outline=127.5 会外扩 127.5×SCALE×2、把图元撑到失控；
+      // 钳到 UI_MAX(3) 之后，外扩量 = UI_MAX × SCALE，矩形每边各加一次。
       const maxSide = Math.max(s.w, s.h);
-      assert.ok(maxSide <= 25.5 * SCALE + 2 * 12 + 1e-6, `图元尺寸失控: ${maxSide}`);
+      const outlinePad = UI_MAX.outline * SCALE;
+      assert.ok(
+        maxSide <= 25.5 * SCALE + 2 * outlinePad + 1e-6,
+        `图元尺寸失控: ${maxSide}（上限应为 ${25.5 * SCALE + 2 * outlinePad}）`
+      );
     }
   });
 
