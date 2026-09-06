@@ -79,5 +79,5 @@ bash deploy/deploy.sh           # 本机构建并上传静态产物
 
 - Lighthouse 跑分（开发机无 Chrome/lighthouse）
 - 准星几何的实机校准：`effectiveGap` 与颜色预设值需游戏内截图对照
-- `cs2cx extract` 的真实 demo 验证（需要一个 `.dem` 文件）
-- 真实选手的准星（需 demo 提取或选手本人发布的码；prosettings 不提供可靠准星）
+- 更多真实选手的准星：目前 10 人来自 spirit-vs-falcons 两个 demo（2026-09-05），
+  其余仍待 demo 提取或选手本人发布的码（prosettings 不提供可靠准星）

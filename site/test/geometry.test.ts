@@ -78,8 +78,10 @@ describe("buildShapes：四臂结构", () => {
     assert.equal(buildShapes({ ...BASE, length: 0, outline_enabled: false }).length, 0);
   });
 
-  it("thickness 为 0 时不画任何臂", () => {
-    assert.equal(buildShapes({ ...BASE, thickness: 0, outline_enabled: false }).length, 0);
+  it("thickness 为 0 时四臂按 1px hairline 渲染（游戏内 0 厚度仍是最细可见线）", () => {
+    const arms = rects(buildShapes({ ...BASE, thickness: 0, outline_enabled: false }));
+    assert.equal(arms.length, 4);
+    assert.ok(arms.every((r) => r.w === 1 || r.h === 1));
   });
 
   it("中心点单独成图元，且开描边时也带描边", () => {
@@ -290,5 +292,20 @@ describe("shapesToSvg", () => {
   it("opacity 为 1 时省略该属性（减小体积）", () => {
     const svg = shapesToSvg(buildShapes({ ...BASE, alpha_enabled: false }));
     assert.ok(!svg.includes('opacity="1"'));
+  });
+});
+
+// 真实 demo 里会出现的退化参数（zont1x thickness=0、NiKo length=0）。
+// 这些不是脏数据：游戏引擎对 0 厚度仍画最细可见线，length=0 就是点准星。
+describe("buildShapes：退化参数（真实职业设置）", () => {
+  it("length=0 不渲染臂，只渲染中心点", () => {
+    const shapes = rects(buildShapes({ ...BASE, outline_enabled: false, length: 0, center_dot_enabled: true }));
+    assert.equal(shapes.length, 1);
+    assert.equal(shapes[0].w, shapes[0].h, "中心点应为正方形");
+  });
+
+  it("length=0 且未开中心点 → 无图元（页面靠参数表说明）", () => {
+    const shapes = buildShapes({ ...BASE, outline_enabled: false, length: 0, center_dot_enabled: false });
+    assert.equal(shapes.length, 0);
   });
 });

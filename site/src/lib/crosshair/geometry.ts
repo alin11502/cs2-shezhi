@@ -61,6 +61,8 @@ const DEFAULTS = { size: 200, scale: DEFAULT_SCALE, outlineColor: "#000000" } as
 
 /** 中心点的最小边长，防止 thickness 极小时中心点看不见 */
 const MIN_DOT_SIZE = 1.5;
+/** thickness=0 时四臂的最细可见宽度近似（游戏引擎会把 0 钳成 1px 线） */
+const HAIRLINE_PX = 1;
 /** 描边的最小外扩量，防止 outline 为小数时描边消失 */
 const MIN_OUTLINE = 0.5;
 
@@ -112,6 +114,10 @@ export function buildShapes(params: Partial<CrosshairParams>, options: GeometryO
   const thickness = Number(params.thickness ?? 0) * scale;
   const gapPx = gap * scale;
 
+  // 游戏里 thickness=0 仍会画出最细可见线（引擎钳到 1px），不是"不画臂"。
+  // 这里按 1px hairline 近似，精确宽度待实机截图校准。
+  const armThickness = thickness > 0 ? thickness : HAIRLINE_PX;
+
   const rgb: Rgb = resolveRgb(params);
   const fill = rgbToCss(rgb);
 
@@ -127,18 +133,18 @@ export function buildShapes(params: Partial<CrosshairParams>, options: GeometryO
   };
 
   // 四臂。length 为 0 时 pushArm 自然跳过，不需要额外判断。
-  if (length > 0 && thickness > 0) {
-    const half = thickness / 2;
+  if (length > 0) {
+    const half = armThickness / 2;
     const tStyle = Boolean(params.t_style_enabled);
 
     // 上臂（T 型准星会跳过它）
-    if (!tStyle) pushArm(center - half, center - gapPx - length, thickness, length);
+    if (!tStyle) pushArm(center - half, center - gapPx - length, armThickness, length);
     // 下臂
-    pushArm(center - half, center + gapPx, thickness, length);
+    pushArm(center - half, center + gapPx, armThickness, length);
     // 左臂
-    pushArm(center - gapPx - length, center - half, length, thickness);
+    pushArm(center - gapPx - length, center - half, length, armThickness);
     // 右臂
-    pushArm(center + gapPx, center - half, length, thickness);
+    pushArm(center + gapPx, center - half, length, armThickness);
   }
 
   // 中心点。边长取 thickness 与最小值中的较大者，避免极细准星看不见点。

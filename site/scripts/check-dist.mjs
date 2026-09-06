@@ -193,9 +193,11 @@ for (const f of playerPages) {
     continue;
   }
   if (hasSvg) {
-    // 一个完整十字准星至少 4 个臂；开描边会翻倍。少于 3 个 rect 说明几何没渲染出来
+    // 真实职业准星存在退化参数：length=0 的点准星只有 1–2 个 rect（中心点+描边），
+    // thickness=0 会渲染成 1px hairline 四臂。所以这里只断言"几何没完全空转"（≥1），
+    // 臂/点的具体组合由 geometry 单测按参数覆盖。
     const rectCount = (html.match(/<rect /g) || []).length;
-    if (rectCount < 3) tooFewRects.push(`${f.rel}: 只有 ${rectCount} 个 rect`);
+    if (rectCount < 1) tooFewRects.push(`${f.rel}: 只有 ${rectCount} 个 rect`);
   }
 }
 check(
@@ -203,7 +205,7 @@ check(
   noCrosshairContent.length === 0,
   noCrosshairContent.join(", ")
 );
-check("有准星的页面 SVG rect 数量合理（≥3）", tooFewRects.length === 0, tooFewRects.join("; "));
+check("有准星的页面 SVG 至少渲染出 1 个图元（几何没空转）", tooFewRects.length === 0, tooFewRects.join("; "));
 
 // 页面不应依赖 JS 才能看到内容：检查是否有 <script> 承担渲染职责
 const renderScripts = [];
