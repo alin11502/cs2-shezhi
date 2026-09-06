@@ -332,6 +332,36 @@ check(
     .join("; ")
 );
 
+// ---------- 7. 地图背景 ----------
+section("7. 地图背景（photo 标记与 dist/maps 实际产物一致）");
+
+// 背景截图漏进产物、或删了地图却留下旧图，都是"错了也不报错"的静默问题
+const { MAPS } = await import("../src/lib/maps.ts");
+const distMapsDir = path.join(DIST, "maps");
+const distMapJpgs = fs.existsSync(distMapsDir)
+  ? fs.readdirSync(distMapsDir).filter((f) => f.endsWith(".jpg"))
+  : [];
+
+for (const m of MAPS.filter((x) => x.photo)) {
+  const f = path.join(distMapsDir, `${m.slug}.jpg`);
+  const exists = fs.existsSync(f);
+  const buf = exists ? fs.readFileSync(f) : null;
+  const isJpeg = !!buf && buf.length > 0 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+  check(
+    `photo 地图 ${m.slug} 的截图已进产物且为 JPEG`,
+    exists && isJpeg,
+    exists ? "文件存在但不是合法 JPEG（或为空）" : "dist/maps 缺该文件"
+  );
+}
+
+const declaredSlugs = new Set(MAPS.map((m) => m.slug));
+const orphanJpgs = distMapJpgs.filter((f) => !declaredSlugs.has(f.replace(/\.jpg$/, "")));
+check(
+  "dist/maps 无 MAPS 未声明的多余截图",
+  orphanJpgs.length === 0,
+  orphanJpgs.join(", ")
+);
+
 // ---------- 汇总 ----------
 console.log(`\n${"-".repeat(56)}`);
 if (fail === 0) {

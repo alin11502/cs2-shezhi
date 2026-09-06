@@ -42,6 +42,9 @@ npm run build && npm run preview     # build 会先生成 OG 图再构建
   `confidence=medium`、每条带证据链接与核对日期。
 - **HLTV 不用**：没有这些数据的公开接口，选手页有 Cloudflare 防护，
   且其服务条款明文禁止抓取与"构建同类竞争网站"。
+- **地图背景**：准星预览的背景是站长提供的 CS2 游戏内真实截图（版权属 Valve，
+  仅用作预览衬底，见 `site/public/maps/<slug>.jpg`）；缺图时回落到按色调绘制的
+  示意场景。不用 AI 生成图冒充游戏画面。
 - 每条数据前台都带来源徽章；样本数据明确标注"虚构样本"。
 
 ## 两条必须知道的数据事实
@@ -56,11 +59,14 @@ npm run build && npm run preview     # build 会先生成 OG 图再构建
 ## 验证
 
 ```bash
-cd site && npm test          # 147 项单测（几何/钳制/PSA 收敛/匹配/推荐规则）
-npm run check-dist           # 24 项构建产物断言（结构/SEO/无JS可见/文案红线）
+cd site && npm test          # 150 项单测（几何/钳制/PSA 收敛/匹配/推荐规则/地图背景一致性）
+npm run check-dist           # 32 项构建产物断言（结构/SEO/无JS可见/文案红线/地图截图）
 cd ../cli && npm test        # demo 归并逻辑单测
 npm run test:integration     # 导入端点集成测试（需运行中的 PocketBase）
 ```
+
+`test:integration` 可用环境变量指向一次性实例而不必改 `cli/.env`：
+`PB_URL=http://127.0.0.1:8091 PB_ADMIN_EMAIL=… PB_ADMIN_PASSWORD=… npm run test:integration`。
 
 ## 部署
 
