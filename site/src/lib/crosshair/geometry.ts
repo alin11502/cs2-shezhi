@@ -63,8 +63,6 @@ const DEFAULTS = { size: 200, scale: DEFAULT_SCALE, outlineColor: "#000000" } as
 const MIN_DOT_SIZE = 1.5;
 /** thickness=0 时四臂的最细可见宽度近似（游戏引擎会把 0 钳成 1px 线） */
 const HAIRLINE_PX = 1;
-/** 描边的最小外扩量，防止 outline 为小数时描边消失 */
-const MIN_OUTLINE = 0.5;
 
 /**
  * 实际生效的间隙。
@@ -81,7 +79,10 @@ const MIN_OUTLINE = 0.5;
 export function effectiveGap(params: Partial<CrosshairParams>): number {
   const gap = Number(params.gap ?? 0);
   const fixed = Number(params.fixed_crosshair_gap ?? 0);
-  return params.deployed_weapon_gap_enabled ? gap : fixed !== 0 ? fixed : gap;
+  // 关闭「按武器间隙」时游戏一律用 cl_fixedcrosshairgap，**包括 0**。
+  // 早先这里写了 fixed!==0 才生效、否则回落 gap 的兜底，会把 fixed=0 的
+  // 玩家间隙画成 gap（ arms 本该贴住中心却张开），属语义错误。
+  return params.deployed_weapon_gap_enabled ? gap : fixed;
 }
 
 /** 该 style 的渲染是否只是近似（用于在 UI 上如实标注） */
@@ -169,20 +170,24 @@ export function buildShapes(params: Partial<CrosshairParams>, options: GeometryO
   // 这只是**渲染层**的防护 —— 参数表里仍如实显示码里的原始 outline 值。
   if (params.outline_enabled) {
     const maxOutlinePx = UI_MAX.outline * scale;
-    const o = Math.min(Math.max(Number(params.outline ?? 0) * scale, MIN_OUTLINE), maxOutlinePx);
-    for (const shape of colored) {
-      if (shape.kind === "rect") {
-        outlines.push({
-          kind: "rect",
-          x: shape.x - o,
-          y: shape.y - o,
-          w: shape.w + o * 2,
-          h: shape.h + o * 2,
-          fill: outlineColor,
-          opacity: 1,
-        });
-      } else {
-        outlines.push({ kind: "circle", cx: shape.cx, cy: shape.cy, r: shape.r + o, fill: outlineColor, opacity: 1 });
+    const raw = Number(params.outline ?? 0) * scale;
+    // outline=0 就是无描边（游戏里 0 厚度不画），不能像早先那样用 MIN_OUTLINE 抬成 0.5
+    const o = raw > 0 ? Math.min(raw, maxOutlinePx) : 0;
+    if (o > 0) {
+      for (const shape of colored) {
+        if (shape.kind === "rect") {
+          outlines.push({
+            kind: "rect",
+            x: shape.x - o,
+            y: shape.y - o,
+            w: shape.w + o * 2,
+            h: shape.h + o * 2,
+            fill: outlineColor,
+            opacity: 1,
+          });
+        } else {
+          outlines.push({ kind: "circle", cx: shape.cx, cy: shape.cy, r: shape.r + o, fill: outlineColor, opacity: 1 });
+        }
       }
     }
   }

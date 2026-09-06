@@ -216,8 +216,8 @@ describe("effectiveGap：唯一待实机校准的假设", () => {
     assert.equal(effectiveGap({ ...BASE, gap: -3, fixed_crosshair_gap: 7, deployed_weapon_gap_enabled: false }), 7);
   });
 
-  it("为假但 fixed_crosshair_gap 为 0 时回落到 gap", () => {
-    assert.equal(effectiveGap({ ...BASE, gap: -3, fixed_crosshair_gap: 0, deployed_weapon_gap_enabled: false }), -3);
+  it("为假且 fixed_crosshair_gap 为 0 时取 0（不再回落 gap）", () => {
+    assert.equal(effectiveGap({ ...BASE, gap: -3, fixed_crosshair_gap: 0, deployed_weapon_gap_enabled: false }), 0);
   });
 });
 
@@ -307,5 +307,13 @@ describe("buildShapes：退化参数（真实职业设置）", () => {
   it("length=0 且未开中心点 → 无图元（页面靠参数表说明）", () => {
     const shapes = buildShapes({ ...BASE, outline_enabled: false, length: 0, center_dot_enabled: false });
     assert.equal(shapes.length, 0);
+  });
+
+  it("outline_enabled 但 outline=0 → 不画描边", () => {
+    const withOutline = buildShapes({ ...BASE, outline_enabled: true, outline: 1 });
+    const zeroOutline = buildShapes({ ...BASE, outline_enabled: true, outline: 0 });
+    const noOutline = buildShapes({ ...BASE, outline_enabled: false });
+    assert.ok(withOutline.length > zeroOutline.length, "outline=1 应比 0 多描边图元");
+    assert.equal(zeroOutline.length, noOutline.length, "outline=0 应与关描边一致");
   });
 });

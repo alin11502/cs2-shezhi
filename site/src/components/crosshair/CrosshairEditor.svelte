@@ -30,6 +30,8 @@
   let result = $derived(paramsToCode(params));
   const cfg = $derived(result.code ? paramsToConVars(result.params) : "");
   const isDynamic = $derived(Number(params.style) === 4);
+  // 开了「按武器间隙」时 cl_fixedcrosshairgap 不参与静止形态，滑条置灰避免"拖了没反应"的困惑
+  const fixedGapInactive = $derived(Boolean(params.deployed_weapon_gap_enabled));
   const dynamicSet = new Set(DYNAMIC_ONLY_PARAMS);
 
   /** 滑条上限：outline 编码能到 127.5 但游戏 UI 只允许 3，滑条按游戏上限给 */
@@ -64,13 +66,16 @@
   ];
 </script>
 
-<div class="grid gap-6 lg:grid-cols-[auto_1fr]">
-  <div class="space-y-3">
-    <CrosshairScene params={params} size={300} />
+<div class="space-y-6">
+  <!-- 预览居中放大：这是编辑器的主体，参数控制放在它下面 -->
+  <div class="mx-auto w-full max-w-2xl">
+    <CrosshairScene params={params} size={460} />
+  </div>
 
+  <div class="mx-auto w-full max-w-2xl space-y-3">
     {#if result.code}
       <div class="space-y-2">
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap items-center justify-center gap-2">
           <code class="rounded-box bg-base-300 px-2 py-1 font-mono text-xs break-all">{result.code}</code>
           <button type="button" class="btn btn-ghost btn-xs" data-copy={result.code}>复制码</button>
         </div>
@@ -93,7 +98,9 @@
       </div>
     {/if}
 
-    <button type="button" class="btn btn-ghost btn-sm" onclick={reset}>恢复默认</button>
+    <div class="flex justify-center">
+      <button type="button" class="btn btn-ghost btn-sm" onclick={reset}>恢复默认</button>
+    </div>
   </div>
 
   <div class="space-y-4">
@@ -140,7 +147,9 @@
         {@const range = RANGES[key]}
         {@const meta = PARAM_META[key]}
         {@const dyn = dynamicSet.has(key)}
-        <label class={`form-control ${dyn && !isDynamic ? "opacity-50" : ""}`}>
+        {@const isFixedGap = key === "fixed_crosshair_gap"}
+        {@const inactive = (dyn && !isDynamic) || (isFixedGap && fixedGapInactive)}
+        <label class={`form-control ${inactive ? "opacity-50" : ""}`}>
           <span class="label-text mb-1 flex items-center justify-between text-xs">
             <span>
               {meta.label}
@@ -149,18 +158,35 @@
                   {isDynamic ? "动态" : "动态·当前不生效"}
                 </span>
               {/if}
+              {#if isFixedGap}
+                <span class="badge badge-outline badge-xs ml-1" title="cl_fixedcrosshairgap 只在关闭「间隙随武器变化」时决定间隙">
+                  {fixedGapInactive ? "当前不生效（随武器开）" : "生效中（随武器关）"}
+                </span>
+              {/if}
             </span>
             <span class="font-mono tabular-nums">{params[key]}</span>
           </span>
-          <input
-            type="range"
-            min={range[0]}
-            max={sliderMax(key)}
-            step={range[2]}
-            class="range range-xs"
-            bind:value={params[key]}
-            oninput={(e) => setNum(key, e.currentTarget.value)}
-          />
+          <span class="flex items-center gap-2">
+            <input
+              type="range"
+              min={range[0]}
+              max={sliderMax(key)}
+              step={range[2]}
+              class="range range-xs flex-1"
+              bind:value={params[key]}
+              oninput={(e) => setNum(key, e.currentTarget.value)}
+            />
+            <input
+              type="number"
+              min={range[0]}
+              max={sliderMax(key)}
+              step={range[2]}
+              class="input input-bordered input-xs w-20 font-mono tabular-nums"
+              value={params[key]}
+              onchange={(e) => setNum(key, e.currentTarget.value)}
+              aria-label={`${meta.label} 精确值`}
+            />
+          </span>
         </label>
       {/each}
     </div>

@@ -59,3 +59,11 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Svelte island 的宿主自定义元素默认是 inline：内部写 w-full / max-w-* 的
+   居中布局会因拿不到父宽度而塌成 0（编辑器预览曾塌成 2px 宽）。
+   统一提升为块级全宽，居中与放大才成立。 */
+astro-island {
+  display: block;
+  width: 100%;
+}
