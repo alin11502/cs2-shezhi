@@ -1,13 +1,12 @@
 /**
  * 地图背景定义。
  *
- * ⚠ 为什么是本地生成的示意背景而不是真实地图截图：
- * CS2 的地图原画是 Valve 版权素材，不能合法地再分发到本站；且本机网络
- * 取不到可靠的 Valve CDN URL（steamstatic 路径 404、商店页不可达）。
- * 所以默认用按每张地图色调生成的渐变背景（明确标注"示意背景"）。
+ * 背景来源：public/maps/<slug>.jpg 放的是 CS2 游戏内真实画面截图（版权属 Valve，
+ * 由站长自行提供，仅用于预览示意）。标记 photo:true 的地图会加载该截图；
+ * 未提供的地图回落到下面 scene 参数渲染的 SVG 示意场景（天空+地面+斜墙），不使用 AI 生成图。
  *
- * 如果你自己有截图或有授权的素材：放进 public/maps/<slug>.jpg（或 .png/.webp），
- * CrosshairScene 会优先用它，无需改代码。
+ * 若图片缺失（onerror），CrosshairScene 同样回落到 SVG 场景。
+ * 要补充或替换某张地图：直接把截图覆盖为 public/maps/<slug>.jpg 并把 photo 置为 true。
  */
 export interface MapBg {
   slug: string;
@@ -23,15 +22,17 @@ export interface MapBg {
    * mid 是墙体中间色。取值按各地图的视觉印象手调。
    */
   scene: { horizon: number; wall: number; mid: string };
+  /** 该地图在 public/maps/<slug>.jpg 提供了 CS2 游戏内真实截图 */
+  photo?: true;
 }
 
 export const MAPS: MapBg[] = [
-  { slug: "de_mirage", name: " Mirage", from: "#9aa7b8", to: "#6b5c42", tone: "mixed", scene: { horizon: 0.42, wall: 18, mid: "#8a7a5c" } },
+  { slug: "de_mirage", name: " Mirage", from: "#9aa7b8", to: "#6b5c42", tone: "mixed", scene: { horizon: 0.42, wall: 18, mid: "#8a7a5c" }, photo: true },
   { slug: "de_dust2", name: "Dust II", from: "#c8b088", to: "#7a6440", tone: "light", scene: { horizon: 0.4, wall: 12, mid: "#a8905e" } },
-  { slug: "de_inferno", name: "Inferno", from: "#b08858", to: "#4a3826", tone: "mixed", scene: { horizon: 0.45, wall: 22, mid: "#7a5a3a" } },
-  { slug: "de_nuke", name: "Nuke", from: "#8fa0a0", to: "#3a4444", tone: "dark", scene: { horizon: 0.5, wall: 8, mid: "#5a6a6a" } },
-  { slug: "de_overpass", name: "Overpass", from: "#8aa08a", to: "#33403a", tone: "dark", scene: { horizon: 0.46, wall: 15, mid: "#4a5a4a" } },
-  { slug: "de_ancient", name: "Ancient", from: "#7a8a70", to: "#2e382c", tone: "dark", scene: { horizon: 0.44, wall: 20, mid: "#4e5a48" } },
+  { slug: "de_inferno", name: "Inferno", from: "#b08858", to: "#4a3826", tone: "mixed", scene: { horizon: 0.45, wall: 22, mid: "#7a5a3a" }, photo: true },
+  { slug: "de_nuke", name: "Nuke", from: "#8fa0a0", to: "#3a4444", tone: "dark", scene: { horizon: 0.5, wall: 8, mid: "#5a6a6a" }, photo: true },
+  { slug: "de_overpass", name: "Overpass", from: "#8aa08a", to: "#33403a", tone: "dark", scene: { horizon: 0.46, wall: 15, mid: "#4a5a4a" }, photo: true },
+  { slug: "de_ancient", name: "Ancient", from: "#7a8a70", to: "#2e382c", tone: "dark", scene: { horizon: 0.44, wall: 20, mid: "#4e5a48" }, photo: true },
   { slug: "de_anubis", name: "Anubis", from: "#c0a060", to: "#4a3c22", tone: "mixed", scene: { horizon: 0.4, wall: 25, mid: "#8a7440" } },
   { slug: "de_vertigo", name: "Vertigo", from: "#90a0b0", to: "#3a4450", tone: "dark", scene: { horizon: 0.55, wall: 6, mid: "#5a6470" } },
 ];

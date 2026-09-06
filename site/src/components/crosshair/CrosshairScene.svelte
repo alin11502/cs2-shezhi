@@ -6,8 +6,8 @@
    * 准星会跟着横向拉宽约 1.33 倍；黑边模式则不变形但可视区变窄。
    * 同一个准星码在不同比例下观感差别很大，必须能切换着看。
    *
-   * 背景默认是按地图色调生成的渐变（示意）；若 public/maps/<slug>.jpg 存在
-   * 则优先用真实截图（img 加载失败自动回落到渐变）。
+   * 背景：photo 标记的地图加载 public/maps/<slug>.jpg 的 CS2 游戏内真实截图（© Valve，站长提供）；
+   * 未提供或图片加载失败（onerror）时回落到按地图色调渲染的 SVG 示意场景（天空+地面+斜墙）。不使用 AI 生成图。
    */
   import { MAPS, ASPECT_MODES, stretchFor, boxAspectFor, BLACK_BAR_RATIO, type AspectMode } from "../../lib/maps.ts";
   import CrosshairPreview from "./CrosshairPreview.svelte";
@@ -53,8 +53,8 @@
     class="relative w-full overflow-hidden rounded-box border border-base-300"
     style="aspect-ratio:{boxAspect}"
   >
-    <!-- 场景底层：天空+地面+两侧斜墙，按地图色调参数化。
-         有真实截图（public/maps/<slug>.jpg）时 img 会盖住它 -->
+    <!-- 场景底层（回落用）：天空+地面+两侧斜墙，按地图色调参数化。
+         public/maps/<slug>.jpg 存在时 img 会盖住它 -->
     <svg class="absolute inset-0 h-full w-full" viewBox="0 0 160 90" preserveAspectRatio="none" aria-hidden="true">
       <rect x="0" y="0" width="160" height={hy} fill={map.from} />
       <rect x="0" y={hy} width="160" height={90 - hy} fill={map.to} />
@@ -85,7 +85,7 @@
     </div>
 
     <span class="absolute bottom-1.5 right-2 rounded bg-black/50 px-1.5 py-0.5 text-[10px] text-white/80">
-      {map.name} · 示意场景（放 public/maps/{map.slug}.jpg 可换真实截图）
+      {map.name} · {map.photo ? "游戏画面（© Valve）" : "示意场景"}
     </span>
   </div>
 
