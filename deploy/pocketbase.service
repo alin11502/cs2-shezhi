@@ -8,7 +8,11 @@ Type=simple
 User=pocketbase
 Group=pocketbase
 WorkingDirectory=/opt/cs2-shezhi/server
-ExecStart=/opt/cs2-shezhi/server/pocketbase serve --http=127.0.0.1:8090
+# 显式传 --dir/--migrationsDir/--hooksDir：PocketBase 0.40 这三个路径的默认值
+# 是相对**可执行文件所在目录**解析的。当前二进制与 server/ 同目录所以碰巧正确，
+# 但一旦有人把二进制挪到别处（如 /usr/local/bin），服务会静默地在别处新建空
+# pb_data、一个迁移都不跑。显式传参消除这个隐患，与 server/dev.sh 的做法一致。
+ExecStart=/opt/cs2-shezhi/server/pocketbase serve --http=127.0.0.1:8090 --dir=/opt/cs2-shezhi/server/pb_data --migrationsDir=/opt/cs2-shezhi/server/pb_migrations --hooksDir=/opt/cs2-shezhi/server/pb_hooks
 Restart=always
 RestartSec=5
 LimitNOFILE=4096
