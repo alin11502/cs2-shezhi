@@ -4,12 +4,17 @@
  *
  * 用法：node scripts/transform-top10.mjs <输入.json> <输出-draft.json>
  *
- * 来源分工（红线）：
+ * 来源分工：
  * - 战队排序与五人名单来自快照里的 HLTV World Ranking —— 只用于**选人选队**；
  * - 设置/视角/视频值转录自 ProSettings 页面，按 third_party / medium 入库，
  *   证据链接与核对日期直接取快照里的 prosettings_url / prosettings_last_updated；
- * - **准星段一律丢弃**：ProSettings 的准星展示值无法可靠映射到 cl_crosshairstyle，
- *   本站准星只认 demo 提取或选手本人发布的码。快照里即使带了 crosshair 也不搬。
+ * - 准星段按站长 2026-09-06 的授权做展示值→21 项映射入库，confidence=low。
+ *   映射约定（都写进每条 notes，前台来源徽章显示 low）：
+ *     · style 用**实测约定**：与 10 名 demo 权威选手对照，10/10 显示 ProSettings 的
+ *       "Classic Static" 对应码内 style 4（动态），故按该约定映射；未实测的标签不猜、跳过；
+ *     · 颜色用**语义映射**（Green→1、Cyan→4、Custom→6 等，对照中 8/10 吻合）；
+ *     · 其余数值字段（length/gap/固定间隙/分裂四项/描边/中心点/透明度）对照中基本吻合，直接搬。
+ *   已有 demo 高置信准星的选手由 seed 护栏跳过，不会被 low 值覆盖。
  */
 
 import fs from "node:fs";
@@ -39,6 +44,43 @@ const SCALING = { stretched: "stretch", "black bars": "black_bars", native: "asp
 const DISPLAY = { fullscreen: "fullscreen", windowed: "windowed", borderless: "borderless", "fullscreen windowed": "borderless" };
 const pick = (map, v) => map[String(v ?? "").trim().toLowerCase()] ?? "";
 
+// style 用实测约定（10 名 demo 选手对照 10/10：ProSettings "Classic Static" = 码内 style 4）。
+// 未出现在对照里的标签不猜，返回 null 让该选手的准星跳过。
+const STYLE_MAP = { "classic static": 4, legacy: 0 };
+// 颜色用语义映射（对照中 Cyan/Green 等 8/10 吻合；Custom 语义为索引 6）
+const COLOR_MAP = { red: 0, green: 1, yellow: 2, blue: 3, cyan: 4, pink: 5, purple: 5, custom: 6 };
+
+/** 快照 crosshair 展示值 → 21 项参数。style/颜色标签无法映射时返回 null。 */
+function mapCrosshair(ch) {
+  if (!ch || typeof ch !== "object") return null;
+  const style = STYLE_MAP[String(ch.style ?? "").trim().toLowerCase()];
+  const color = COLOR_MAP[String(ch.color ?? "").trim().toLowerCase()];
+  if (style === undefined || color === undefined) return null;
+  return {
+    style,
+    length: ch.length ?? 0,
+    thickness: ch.thickness ?? 0,
+    gap: ch.gap ?? 0,
+    color,
+    red: ch.red ?? 0,
+    green: ch.green ?? 0,
+    blue: ch.blue ?? 0,
+    alpha_enabled: Boolean(ch.alpha_enabled),
+    alpha: ch.alpha_value ?? 255,
+    outline_enabled: Boolean(ch.outline),
+    outline: ch.outline ? (ch.outline_thickness ?? 0) : 0,
+    center_dot_enabled: Boolean(ch.dot),
+    follow_recoil: Boolean(ch.follow_recoil),
+    fixed_crosshair_gap: ch.fixed_gap ?? 0,
+    t_style_enabled: Boolean(ch.t_style),
+    deployed_weapon_gap_enabled: Boolean(ch.deployed_weapon_gap),
+    split_distance: ch.split_distance ?? 0,
+    inner_split_alpha: ch.inner_split_alpha ?? 0,
+    outer_split_alpha: ch.outer_split_alpha ?? 0,
+    split_size_ratio: ch.split_size_ratio ?? 0,
+  };
+}
+
 const doc = JSON.parse(fs.readFileSync(path.resolve(inputArg), "utf8"));
 const meta = doc.metadata || {};
 const generatedOn = String(meta.generated_on || "").slice(0, 10);
@@ -67,20 +109,26 @@ for (const t of doc.teams || []) {
     const m = p.mouse || {};
     const vm = p.viewmodel || {};
     const v = p.video || {};
+    const verifiedAt = String(p.prosettings_last_updated || generatedOn);
     const provenance = {
       source: "third_party",
       confidence: "medium",
       evidence_url: url,
-      verified_at: String(p.prosettings_last_updated || generatedOn),
+      verified_at: verifiedAt,
       notes: "转录自站长提供的 HLTV top10 快照；设置值取自 ProSettings 页面展示值",
     };
+
+    const chParams = mapCrosshair(p.crosshair);
+    if (!chParams) {
+      skipped.push(`${slug}：准星展示值的 style/颜色标签无法映射（${p.crosshair?.style} / ${p.crosshair?.color}），准星跳过`);
+    }
 
     players.push({
       slug,
       name: slug,
       real_name: p.nickname,
       team: teamSlug,
-      // 只搬设置/视角/视频。crosshair 段刻意不搬（见文件头红线说明）
+      // 只搬设置/视角/视频 + （授权后）映射准星
       settings: {
         sensitivity: m.sensitivity ?? null,
         dpi: m.dpi ?? null,
@@ -100,6 +148,21 @@ for (const t of doc.teams || []) {
         viewmodel_presetpos: vm.presetpos ?? null,
         ...provenance,
       },
+      crosshairs: chParams
+        ? [
+            {
+              params: chParams,
+              captured_at: verifiedAt,
+              source: "third_party",
+              confidence: "low",
+              evidence_url: url,
+              verified_at: verifiedAt,
+              notes:
+                "由 ProSettings 展示值映射（style 按实测约定 Classic Static→4；颜色按语义映射）；" +
+                "未经 demo 或本人发布的码核实。站长 2026-09-06 授权入库",
+            },
+          ]
+        : [],
     });
   }
 }

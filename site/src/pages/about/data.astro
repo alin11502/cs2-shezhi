@@ -172,7 +172,7 @@ const description = `${SITE_NAME} 的三类数据来源、置信度分级、更�
     </p>
 
     <h2>5. 渲染与视觉上的已知不确定性</h2>
-    <p>有四处我们需要明确说明其来源或验证状态：</p>
+    <p>有五处我们需要明确说明其来源或验证状态：</p>
     <ul>
       <li>
         <strong>颜色预设值</strong>。预设色（索引 0–5）的具体 RGB 取自一个可运行的开源渲染器
@@ -197,6 +197,13 @@ const description = `${SITE_NAME} 的三类数据来源、置信度分级、更�
         <strong>退化参数的渲染近似</strong>。真实职业准星里存在 <code>thickness=0</code>
         （游戏内仍是最细可见线，本站按 1px 近似）与 <code>length=0</code>（点准星，只画中心点）
         这类合法但极端的参数；它们的精确像素表现同样待实机截图校准。
+      </li>
+      <li>
+        <strong>映射准星（confidence=low）</strong>。40 名暂无 demo 的选手，其准星由
+        ProSettings 展示值映射编码入库（站长授权）。映射约定：style 按<strong>实测约定</strong>
+        （与 10 名 demo 选手对照，10/10 显示该来源的 "Classic Static" 对应码内 style 4），
+        颜色按语义映射。<strong>同一对照也证明该来源的 style/颜色标签并不可靠</strong>，
+        因此这批准星仅供预览参考，来源徽章标 low；已有 demo 高置信准星的选手不会被其覆盖。
       </li>
     </ul>
 

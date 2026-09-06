@@ -398,7 +398,23 @@ async function main() {
       }
 
       // ---- crosshairs ----
-      const shots = p.crosshairs || [];
+      let shots = p.crosshairs || [];
+
+      // 护栏：demo / 本人码（confidence=high）的当前准星是权威值，
+      // 不允许被第三方映射（low/medium）顶替成 is_current。命中则清空本批准星。
+      if (shots.length && !DRY_RUN) {
+        const ordered0 = [...shots].sort((a, b) => String(a.captured_at).localeCompare(String(b.captured_at)));
+        const incomingConf = String(ordered0[ordered0.length - 1].confidence ?? defaults.confidence ?? "");
+        const curNow = await findFirst(
+          "crosshair_snapshots",
+          `player=${q(playerId)} && is_current=true`
+        );
+        if (curNow && curNow.confidence === "high" && incomingConf !== "high") {
+          log(`    跳过准星：已有 high 置信当前准星，不被 ${incomingConf} 置信的输入顶替`);
+          shots = [];
+        }
+      }
+
       if (shots.length) {
         // 按 captured_at 排序，最新的那条才是 is_current
         const ordered = [...shots].sort((a, b) => String(a.captured_at).localeCompare(String(b.captured_at)));
