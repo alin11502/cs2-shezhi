@@ -331,18 +331,18 @@ async function main() {
         throw new Error(`引用的战队 ${teamSlug} 不在 seed.teams 里`);
       }
 
-      const playerData = {
-        slug: p.slug,
-        name: p.name,
-        real_name: p.real_name ?? "",
-        country: p.country ?? "",
-        steamid64: p.steamid64 ?? "",
-        hltv_id: p.hltv_id ?? 0,
-        status: p.status ?? "active",
-        role: p.role ?? "",
-        sort_order: p.sort_order ?? 9999,
-        current_team: teamSlug ? teamIdBySlug.get(teamSlug) : "",
+      // 只写 seed 里真正提供的字段：第三方草稿往往只有名字和设置，
+      // 若把 country/steamid64 等用空串一起 PATCH 上去，会把人工或 demo
+      // 补好的元数据冲掉（实测 steamid64 被清空的事故风险）。
+      const playerData = { slug: p.slug, name: p.name };
+      const optional = {
+        real_name: p.real_name, country: p.country, steamid64: p.steamid64,
+        hltv_id: p.hltv_id, status: p.status, role: p.role, sort_order: p.sort_order,
       };
+      for (const [k, v] of Object.entries(optional)) {
+        if (v !== undefined && v !== null && v !== "") playerData[k] = v;
+      }
+      if (teamSlug) playerData.current_team = teamIdBySlug.get(teamSlug);
 
       const { record: playerRec, isNew } = await upsert("players", `slug=${q(p.slug)}`, playerData);
       const playerId = playerRec.id;

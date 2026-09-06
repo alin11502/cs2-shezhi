@@ -40,11 +40,15 @@ npm run build && npm run preview     # build 会先生成 OG 图再构建
   且展示值→`cl_crosshairstyle` 的映射无法可靠验证。
 - **设置/外设/视频**：prosettings.net 展示值，`source=third_party`、
   `confidence=medium`、每条带证据链接与核对日期。
-- **HLTV 不用**：没有这些数据的公开接口，选手页有 Cloudflare 防护，
+- **不爬 HLTV**：没有这些数据的公开接口，选手页有 Cloudflare 防护，
   且其服务条款明文禁止抓取与"构建同类竞争网站"。
+  唯一例外是站长自行提供的 HLTV 榜单快照，且**只用于选人选队**，不取其数据字段。
 - **地图背景**：准星预览的背景是站长提供的 CS2 游戏内真实截图（版权属 Valve，
   仅用作预览衬底，见 `site/public/maps/<slug>.jpg`）；缺图时回落到按色调绘制的
   示意场景。不用 AI 生成图冒充游戏画面。
+- **top10 战队快照**：站长提供的 JSON（名单/排序 = HLTV World Ranking 快照，
+  设置值 = ProSettings 页面转录）经 `scripts/transform-top10.mjs` 转成 seed 草稿入库；
+  快照自带的准星展示值**不搬**（准星只认 demo 或本人发布的码）。
 - 每条数据前台都带来源徽章；样本数据明确标注"虚构样本"。
 
 ## 两条必须知道的数据事实

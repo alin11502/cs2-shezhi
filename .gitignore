@@ -23,6 +23,7 @@ site/src/data/*.json
 # prosettings.net 抓取缓存与待审草稿：第三方数据人工审核前不进版本库
 site/scripts/.prosettings-cache/
 site/scripts/seed/prosettings-draft.json
+site/scripts/seed/top10-draft.json
 
 # OG 分享卡片：scripts/build-og.mjs 在 build 时生成，不入库
 site/public/og/
