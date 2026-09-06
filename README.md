@@ -74,10 +74,29 @@ npm run test:integration     # 导入端点集成测试（需运行中的 Pocket
 
 ## 部署
 
+上线前需要准备四样东西：
+
+| 项 | 说明 |
+|---|---|
+| VPS | Debian/Ubuntu 系，2C2G 即可；要有 root 或 sudo 的 SSH 访问 |
+| 域名 | DNS 的 A/AAAA 记录指向 VPS 公网 IP（Caddy 自动申请 Let's Encrypt 证书的前提） |
+| ACME 邮箱 | Let's Encrypt 证书到期通知收件人 |
+| 本机环境变量 | `VPS_HOST`、`VPS_USER`（deploy.sh 用）；构建时 `SITE_URL=https://你的域名`（否则不输出 sitemap/canonical） |
+
 ```bash
-sudo bash deploy/setup-vps.sh   # VPS 一次性初始化（建用户/目录、校验和下载 PocketBase、装 Caddy）
-bash deploy/deploy.sh           # 本机构建并上传静态产物
+# 1. VPS 一次性初始化（建用户/目录、校验和下载 PocketBase、装 Caddy、注入域名）
+sudo DOMAIN=你的域名 ACME_EMAIL=你的邮箱 bash deploy/setup-vps.sh
+
+# 2. 本机构建并上传静态产物 + server/ 代码
+SITE_URL=https://你的域名 VPS_HOST=1.2.3.4 VPS_USER=root bash deploy/deploy.sh
+
+# 3. VPS 上启动服务 + 备份 cron
+sudo systemctl restart pocketbase && sudo systemctl reload caddy
+echo '0 4 * * * /opt/cs2-shezhi/deploy/backup.sh >> /var/log/cs2-backup.log 2>&1' | sudo crontab -
 ```
+
+域名通过 systemd drop-in 注入 caddy 环境（`/etc/systemd/system/caddy.service.d/10-site.conf`），
+不需要手编 `/etc/caddy/Caddyfile`；首次访问 `https://你的域名/_/` 创建 PocketBase 超级用户。
 
 ## 已知未做
 

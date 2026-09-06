@@ -74,16 +74,35 @@ fi
 install -d -o caddy -g caddy /var/log/caddy
 if [[ ! -f /etc/caddy/Caddyfile ]] || ! cmp -s "$APP_DIR/deploy/Caddyfile" /etc/caddy/Caddyfile; then
   cp -f "$APP_DIR/deploy/Caddyfile" /etc/caddy/Caddyfile
-  echo "    Caddyfile 已更新 —— 记得把 SITE_DOMAIN 与 email 改成你自己的再 systemctl reload caddy"
+  echo "    Caddyfile 已更新"
+fi
+
+# Caddyfile 里的 {$SITE_DOMAIN} / {$ACME_EMAIL} 取自 caddy 进程的环境变量。
+# 不依赖发行版 unit 是否带 EnvironmentFile，直接写 systemd drop-in 最稳。
+DOMAIN="${DOMAIN:-}"
+ACME_EMAIL="${ACME_EMAIL:-}"
+if [[ -n "$DOMAIN" ]]; then
+  install -d -m 755 /etc/systemd/system/caddy.service.d
+  cat > /etc/systemd/system/caddy.service.d/10-site.conf <<EOF
+[Service]
+Environment="SITE_DOMAIN=$DOMAIN"
+Environment="ACME_EMAIL=${ACME_EMAIL:-admin@example.com}"
+EOF
+  systemctl daemon-reload
+  echo "    已注入 SITE_DOMAIN=$DOMAIN（ACME_EMAIL=${ACME_EMAIL:-admin@example.com}）"
+else
+  echo "    ! 未提供 DOMAIN 环境变量，Caddy 将退回示例域名 example.com（证书申请会失败）。"
+  echo "      用法：sudo DOMAIN=你的域名 ACME_EMAIL=你的邮箱 bash deploy/setup-vps.sh"
 fi
 systemctl enable caddy >/dev/null 2>&1 || true
 
 cat <<'NEXT'
 
 初始化完成。接下来：
-  1. 编辑 /etc/caddy/Caddyfile：把 {$SITE_DOMAIN:example.com} 与 email 改成你的域名/邮箱
-  2. 本机跑 deploy/deploy.sh 上传静态产物与 server/ 代码
-  3. VPS 上: systemctl restart pocketbase && systemctl reload caddy
+  1. 本机跑 deploy/deploy.sh 上传静态产物与 server/ 代码
+     （构建前设 SITE_URL=https://你的域名，否则不输出 sitemap/canonical）
+  2. VPS 上: systemctl restart pocketbase && systemctl reload caddy
+  3. 确认域名 DNS 的 A/AAAA 记录已指向本机的公网 IP，否则 Let's Encrypt 证书申请会失败
   4. 首次访问 https://<你的域名>/_/ 创建 PocketBase 超级用户
   5. 备份 cron: 0 4 * * * /opt/cs2-shezhi/deploy/backup.sh >> /var/log/cs2-backup.log 2>&1
 NEXT

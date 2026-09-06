@@ -1,6 +1,7 @@
 {
-	# 证书申请通知邮箱，部署前改成你自己的
-	email admin@example.com
+	# 证书申请通知邮箱，由 setup-vps.sh 通过 systemd drop-in 注入 ACME_EMAIL；
+	# 未注入时退回示例值（仅影响 Let's Encrypt 的通知收件人）
+	email {$ACME_EMAIL:admin@example.com}
 }
 
 # 站点域名，部署前替换；本地调试可用 :8080 代替
